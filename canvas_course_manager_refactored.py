@@ -6,6 +6,17 @@ import logging
 import os
 import pickle
 
+LOG_FILE = "C:/Users/eellison/Documents/canvas_course_change_log.csv"
+
+def log_course_changes_to_csv(log_entries):
+    file_exists = os.path.exists(LOG_FILE)
+
+    with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=log_entries[0].keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerows(log_entries)
+
 if "trigger_apply" not in st.session_state:
     st.session_state["trigger_apply"] = False
 
@@ -87,6 +98,7 @@ def _save_to_file_cache(filepath: str, data: list[dict]):
 # --- Step 1: Credentials & Term Selection ---
 with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=not st.session_state.credentials_collapsed):
     st.header("Canvas Credentials")
+    user_email = st.text_input("Your **email address** (for the audit log)", key="log_email")
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
     api_token = st.text_input("Canvas API Token", type="password")
     account_id = st.text_input("Canvas Account ID", placeholder="1")
@@ -226,11 +238,31 @@ def apply_participation_settings(base_url, selected_courses, headers):
 if st.session_state.get("trigger_apply", False):
     payload = st.session_state["settings_payload"]
     updated_ids = apply_participation_settings(base_url, payload["selected_courses"], headers)
+
+    # 📝 Prepare entries for the CSV audit log
+    log_entries = []
+    for cid in updated_ids:
+        course = next((c for c in filtered_courses if str(c["id"]) == cid), None)
+        if course:
+            log_entries.append({
+                "Course ID": cid,
+                "Course Name": course["name"],
+                "Participation Mode": payload["selected_mode"],
+                "Start Date": course.get("start_at", ""),
+                "End Date": course.get("end_at", ""),
+                "Updated At": datetime.utcnow().isoformat() + "Z",
+                "Changed By": user_email or "Unknown"  # 👈 Logs the email entered earlier
+            })
+
+    if log_entries:
+        log_course_changes_to_csv(log_entries)
+
     st.session_state["last_updates"] = updated_ids
     st.session_state["bulk_mode"] = payload["selected_mode"]
     st.session_state["courses_collapsed"] = True
     st.session_state["trigger_apply"] = False
     st.rerun()
+
 
 # --- Step 2: Course Selection ---
 if filtered_courses:
