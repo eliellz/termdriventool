@@ -151,8 +151,8 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
 
 # --- Term and Course Selection Workflow ---
 if canvas_domain and api_token and account_id:
-        if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
-        st.session_state.credentials_collapsed = True
+    if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
+        st.session_state.credentials_collapsed = True  # ✅ INDENTED under the 'if'
         terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
         if not terms:
             url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
@@ -161,6 +161,7 @@ if canvas_domain and api_token and account_id:
         st.session_state.fetched_terms = terms
         st.session_state.data_loaded_and_terms_fetched = True
         st.rerun()
+
 
     if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
         st.success("✅ Terms loaded successfully!")
