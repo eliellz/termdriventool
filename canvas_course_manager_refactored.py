@@ -5,10 +5,16 @@ from datetime import datetime
 import logging
 import os
 import pickle
+import csv
 
 LOG_FILE = "C:/Users/eellison/Documents/canvas_course_change_log.csv"
 
 def log_course_changes_to_csv(log_entries):
+    # ✅ Ensure the folder exists
+    log_dir = os.path.dirname(LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     file_exists = os.path.exists(LOG_FILE)
 
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as file:
