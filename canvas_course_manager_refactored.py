@@ -215,9 +215,18 @@ def apply_participation_settings(base_url, selected_courses, headers):
     st.session_state["last_updates"] = updated
     st.success("🎉 All selected courses have been processed.")
 
+# --- Trigger apply logic if Apply was pressed in last run ---
+if st.session_state.get("trigger_apply", False):
+    payload = st.session_state["settings_payload"]
+    updated_ids = apply_participation_settings(base_url, payload["selected_courses"], headers)
+    st.session_state["last_updates"] = updated_ids
+    st.session_state["bulk_mode"] = payload["selected_mode"]
+    st.session_state["courses_collapsed"] = True
+    st.session_state["trigger_apply"] = False
+    st.rerun()
+
 # --- Step 2: Course Selection ---
 if filtered_courses:
-    # UI controls in an expander
     with st.expander("📘 Step 2: Select and Apply Participation Settings", expanded=not st.session_state.courses_collapsed):
         st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
@@ -259,29 +268,25 @@ if filtered_courses:
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
 
-    # Participation Settings UI for selected courses
     if selected_course_ids:
         settings = participation_settings_ui()
 
-if st.button("Apply Settings to Selected Courses"):
-    st.session_state["trigger_apply"] = True
-    st.session_state["settings_payload"] = {
-        "selected_courses": [{
-            "course_id": course_id,
-            "mode": settings["mode"],
-            "start_date": settings["start_date"],
-            "end_date": settings["end_date"]
-        } for course_id in selected_course_ids],
-        "selected_mode": settings["mode"]
-    }
-    st.rerun()
-
-
+        if st.button("Apply Settings to Selected Courses"):
+            st.session_state["trigger_apply"] = True
+            st.session_state["settings_payload"] = {
+                "selected_courses": [{
+                    "course_id": course_id,
+                    "mode": settings["mode"],
+                    "start_date": settings["start_date"],
+                    "end_date": settings["end_date"]
+                } for course_id in selected_course_ids],
+                "selected_mode": settings["mode"]
+            }
+            st.rerun()
     else:
         st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
-
 
 # --- Summary of Recently Updated Courses ---
 if "last_updates" in st.session_state and st.session_state["last_updates"]:
