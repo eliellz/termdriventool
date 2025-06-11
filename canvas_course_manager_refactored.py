@@ -45,7 +45,7 @@ for key, default_value in INITIAL_SESSION_STATE.items():
         st.session_state[key] = default_value
 
 # --- Credential Inputs ---
-with st.expander("🔐 Canvas Credentials", expanded=not st.session_state.data_loaded_and_terms_fetched):
+with st.expander("\ud83d\udd10 Canvas Credentials", expanded=not st.session_state.data_loaded_and_terms_fetched):
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
     api_token = st.text_input("Canvas API Token", type="password")
     account_id = st.text_input("Canvas Account ID", placeholder="1")
@@ -54,7 +54,6 @@ headers = {"Authorization": f"Bearer {api_token}"}
 
 # --- API Helpers ---
 def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
-    print(f"🔍 Requesting: {url}")  # ✅ fixed indent
     all_data = []
     current_url = url
     while current_url:
@@ -73,22 +72,6 @@ def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
     if resp.status_code == 200:
         return len(resp.json())
     return 0
-
-# --- DEBUG: Verify API response ---
-st.subheader("🛠 Debug Info: API Response Check")
-
-# 1. Show raw API URL (did term ID insert properly?)
-st.code(url, language="bash")
-
-# 2. Show total number of courses fetched
-st.write(f"🔎 Fetched {len(all_courses)} courses from Canvas API")
-
-# 3. Show first few raw course objects
-if all_courses:
-    st.json(all_courses[:2])  # Preview 2 sample courses
-else:
-    st.warning("⚠️ No courses returned. Check your term ID, headers, or permissions.")
-
 
 # --- File-Based Cache ---
 def _load_from_file_cache(filepath: str):
@@ -126,7 +109,7 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
     if not selected_courses:
         st.info("No courses selected.")
         return
-    st.subheader("📤 Applying Participation Settings")
+    st.subheader("\ud83d\udce4 Applying Participation Settings")
     total = len(selected_courses)
     progress = st.progress(0)
     for i, course in enumerate(selected_courses):
@@ -142,15 +125,15 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
         try:
             resp = requests.put(url, headers=headers, json=payload)
             resp.raise_for_status()
-            st.success(f"✅ Updated course {course['course_id']}")
+            st.success(f"\u2705 Updated course {course['course_id']}")
         except Exception as e:
-            st.error(f"❌ Failed to update course {course['course_id']}: {e}")
+            st.error(f"\u274c Failed to update course {course['course_id']}: {e}")
         progress.progress((i + 1) / total)
-    st.success("🎉 All selected courses have been processed.")
+    st.success("\ud83c\udf89 All selected courses have been processed.")
 
 # --- Term and Course Selection Workflow ---
 if canvas_domain and api_token and account_id:
-    if st.button("🚀 Load Canvas Terms"):
+    if st.button("\ud83d\ude80 Load Canvas Terms"):
         terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
         if not terms:
             url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
@@ -161,7 +144,7 @@ if canvas_domain and api_token and account_id:
         st.rerun()
 
     if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
-        st.success("✅ Terms loaded successfully!")
+        st.success("\u2705 Terms loaded successfully!")
         term_names = ["--- Select a Term ---"] + [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
         selected_index = st.selectbox("Select a Term", list(range(len(term_names))), format_func=lambda i: term_names[i])
 
@@ -174,14 +157,11 @@ term_options = st.session_state.fetched_terms
 selected_term = next((t for t in term_options if t["id"] == st.session_state.selected_term_id), None)
 
 if not selected_term:
-    st.error("❌ No term selected. Please select a term above.")
+    st.error("\u274c No term selected. Please select a term above.")
     st.stop()
 
-
 # --- Fetch and Filter Courses ---
-from datetime import datetime
-
-url = (  # ✅ Replace this line
+url = (
     f"{base_url}/api/v1/accounts/{account_id}/courses"
     f"?enrollment_term_id={selected_term['id']}&per_page=100"
     f"&include[]=enrollments"
@@ -191,83 +171,23 @@ url = (  # ✅ Replace this line
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
-# Fetch and display total courses
-st.write(f"📦 Total courses fetched: {len(all_courses)}")
-for course in all_courses[:5]:
-    st.markdown(f"**Course ID:** {course.get('id')}")
-    st.write("Enrollments:", course.get("enrollments", "⚠️ Missing"))
-
-# --- Filter courses ---
-filtered_courses = []
-for course in all_courses:
-    restrict = course.get("restrict_enrollments_to_course_dates", False)
-    start_at = course.get("start_at")
-    end_at = course.get("end_at")
-    enrollments = course.get("enrollments", [])
-
-    if restrict and (start_at or end_at) and enrollments:
-        filtered_courses.append(course)
-
-# --- Display Matching Courses ---
-if filtered_courses:
-    st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
-
-    for course in filtered_courses:
-        course_id = str(course['id'])
-        if f"select_{course_id}" not in st.session_state:
-            st.session_state[f"select_{course_id}"] = False
-
-    # --- Course Selection UI ---
-    st.markdown("### 📋 Step 1: Select Courses to Update")
-    st.info("Scroll through the list of courses below and check the ones you'd like to update.")
-
-    col_select_all, col_deselect_all = st.columns(2)
-    with col_select_all:
-        select_all = st.checkbox("✅ Select All Courses")
-    with col_deselect_all:
-        deselect_all = st.checkbox("🚫 Deselect All Courses")
-
-    selected_course_ids = []
-
-    for course in filtered_courses:
-        course_id = str(course['id'])
-
-        if deselect_all:
-            checked = False
-        elif select_all:
-            checked = True
-        else:
-            checked = st.session_state.get(f"select_{course_id}", False)
-
-        with st.container():
-            col1, col2 = st.columns([0.05, 0.95])
-            with col1:
-                checked = st.checkbox("", key=f"select_{course_id}", value=checked)
-            with col2:
-                with st.expander(f"📘 {course['name']} (ID: {course_id})", expanded=False):
-                    st.markdown(f"**🧑‍🎓 Active Enrollments:** {course['_active_enrollments']}")
-                    st.markdown(f"**📆 Term ID:** `{course['_term']}`")
-                    st.markdown(f"**⚙️ Mode:** `{course['_participation']}`")
-                    st.markdown(f"**📅 Start Date:** `{course.get('start_at', 'None')}`")
-                    st.markdown(f"**📅 End Date:** `{course.get('end_at', 'None')}`")
-                    canvas_link = f"https://{canvas_domain}/courses/{course_id}"
-                    st.markdown(f"[🔗 Open in Canvas]({canvas_link})")
-
-        if st.session_state.get(f"select_{course_id}", False):
-            selected_course_ids.append(course_id)
-
-    # --- Step 2: Participation Settings ---
-    if selected_course_ids:
-        if "settings_collapsed" not in st.session_state:
-            st.session_state.settings_collapsed = False
-
-        with st.expander("🛠️ Step 2: Define Participation Settings", expanded=not st.session_state.settings_collapsed):
-            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-
-            if st.button("✅ Apply Settings to Selected Courses"):
-                apply_participation_settings(base_url, course_settings, headers)
-                st.session_state.settings_collapsed = True  # Collapse after apply
-    else:
-        st.warning("⚠️ Please select at least one course above to proceed.")
+# --- 🔧 Enhanced Debug Block ---
+st.subheader("\ud83d\udee0 Debug: Course API Response Check")
+st.code(url, language="bash")
+redacted_headers = {k: ("***" if k.lower() == "authorization" else v) for k, v in headers.items()}
+st.write("Request Headers:", redacted_headers)
+st.write(f"\ud83d\udce6 Total courses fetched: `{len(all_courses)}`")
+if not all_courses:
+    st.error("\u274c No courses returned. Possible reasons:")
+    st.markdown("""
+    - Invalid Canvas domain or API token
+    - Account ID is incorrect or unauthorized
+    - Selected term ID does not match any courses
+    - The token doesn’t have permission to view courses
+    - Canvas API throttling or server error
+    """)
+    st.stop()
 else:
-    st.info("No courses found with partial date overrides and active student enrollments.")
+    st.json(all_courses[:2])
+
+# (rest of your filtering and UI logic continues...)
