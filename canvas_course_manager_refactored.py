@@ -187,12 +187,9 @@ for course in all_courses:
     term_name = course.get("enrollment_term_id")
     participation_mode = course.get("course_format") or "term"
 
-    participation_override = course.get("restrict_enrollments_to_course_dates", False)
     start_date = course.get("start_at")
     end_date = course.get("end_at")
-
-    has_dates = bool(start_date) or bool(end_date)  # Only one is set
-    is_active_now = course.get('workflow_state') == 'available'
+    has_dates = bool(start_date) or bool(end_date)
 
     # ✅ Count active student enrollments
     active_student_enrollments = [
@@ -200,10 +197,10 @@ for course in all_courses:
         if e.get('type') == 'StudentEnrollment' and e.get('enrollment_state') == 'active'
     ]
 
-    if participation_override and (has_dates or is_active_now) and active_student_enrollments:
+    if has_dates and active_student_enrollments:
         course['_term'] = term_name
         course['_participation'] = participation_mode
-        course['_active_enrollments'] = len(active_student_enrollments)  # ✅ Correct count
+        course['_active_enrollments'] = len(active_student_enrollments)
         filtered_courses.append(course)
 
 # --- Display Matching Courses ---
