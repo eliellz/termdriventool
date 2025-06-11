@@ -164,9 +164,9 @@ if canvas_domain and api_token and account_id:
                 # Only include if either start or end date is present (but not both blank)
                 start = course.get("start_at")
                 end = course.get("end_at")
-                has_custom_date = (start and not end) or (end and not start)
+                restrict = course.get("restrict_enrollments_to_course_dates", False)
 
-                if has_custom_date:
+               if restrict:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
                     if enrollment_count > 0:
                         # Determine participation setting mode
