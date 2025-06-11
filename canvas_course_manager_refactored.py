@@ -236,35 +236,34 @@ if filtered_courses:
         with col_deselect_all:
             deselect_all = st.checkbox("Deselect All Courses")
 
-    # Course list shown outside the expander
-    selected_course_ids = []
-    for course in filtered_courses:
-        course_id = str(course['id'])
+# Course list shown outside the expander
+selected_course_ids = []
+for course in filtered_courses:
+    course_id = str(course['id'])
 
-       if deselect_all:
-    st.session_state[f"select_{course_id}"] = False
-elif select_all:
-    st.session_state[f"select_{course_id}"] = True
+    if deselect_all:
+        st.session_state[f"select_{course_id}"] = False
+    elif select_all:
+        st.session_state[f"select_{course_id}"] = True
 
-col1, col2 = st.columns([0.05, 0.95])
-with col1:
-    st.checkbox("", key=f"select_{course_id}")
+    col1, col2 = st.columns([0.05, 0.95])
+    with col1:
+        st.checkbox("", key=f"select_{course_id}")
+    with col2:
+        toggle_key = f"expand_{course_id}"
+        expanded = st.toggle(f"📘 {course['name']} (ID: {course_id})", key=toggle_key)
+        if expanded:
+            st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
+            st.markdown(f"- **Term:** {course['_term']}")
+            st.markdown(f"- **Participation Mode:** {course['_participation']}")
+            st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
+            st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
+            canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+            st.markdown(f"- [Open in Canvas]({canvas_link})")
 
-        with col2:
-            toggle_key = f"expand_{course_id}"
-            expanded = st.toggle(f"📘 {course['name']} (ID: {course_id})", key=toggle_key)
-            if expanded:
-                st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
-                st.markdown(f"- **Term:** {course['_term']}")
-                st.markdown(f"- **Participation Mode:** {course['_participation']}")
-                st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
-                st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
-                canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-                st.markdown(f"- [Open in Canvas]({canvas_link})")
-
-        if st.session_state.get(f"select_{course_id}", False):
-            selected_course_ids.append(course_id)
-
+    # Track selected courses using session state only
+    if st.session_state.get(f"select_{course_id}", False):
+        selected_course_ids.append(course_id)
 
     if selected_course_ids:
         settings = participation_settings_ui()
