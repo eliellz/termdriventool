@@ -243,9 +243,9 @@ if filtered_courses:
         with col_deselect_all:
             deselect_all = st.checkbox("Deselect All Courses")
 
-# Course list shown outside the expander
 # --- Course List Display ---
 selected_course_ids = []
+
 for course in filtered_courses:
     course_id = str(course['id'])
 
@@ -272,7 +272,7 @@ for course in filtered_courses:
     if st.session_state.get(f"select_{course_id}", False):
         selected_course_ids.append(course_id)
 
-# ✅ Now outside the loop — once, not per course
+# ✅ Now outside the loop — only runs once
 if selected_course_ids:
     settings = participation_settings_ui()
 
@@ -290,9 +290,6 @@ if selected_course_ids:
         st.rerun()
 else:
     st.info("Select at least one course to update.")
-
-else:
-    st.info("No courses found with partial date overrides and active student enrollments.")
 
 # --- Summary of Recently Updated Courses ---
 if "last_updates" in st.session_state and st.session_state["last_updates"]:
