@@ -239,20 +239,21 @@ for course in filtered_courses:
                 canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
                 st.markdown(f"[🔗 Open in Canvas]({canvas_link})")
 
-    if st.session_state[f"select_{course_id}"]:
-        selected_course_ids.append(course_id)
+if st.session_state[f"select_{course_id}"]:
+    selected_course_ids.append(course_id)
 
-if selected_course_ids:
-    st.markdown("---")
-    st.markdown("### 🛠️ Step 2: Define Participation Settings")
-    st.info("Choose a participation mode and date range for each selected course.")
+# Handle participation settings only if courses were found
+if filtered_courses:
+    if selected_course_ids:
+        st.markdown("---")
+        st.markdown("### 🛠️ Step 2: Define Participation Settings")
+        st.info("Choose a participation mode and date range for each selected course.")
 
-    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
-    if st.button("✅ Apply Settings to Selected Courses"):
-        apply_participation_settings(base_url, course_settings, headers)
+        if st.button("✅ Apply Settings to Selected Courses"):
+            apply_participation_settings(base_url, course_settings, headers)
     else:
-    st.warning("⚠️ Please select at least one course above to proceed.")
-
+        st.warning("⚠️ Please select at least one course above to proceed.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
