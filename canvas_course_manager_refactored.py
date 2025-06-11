@@ -155,20 +155,28 @@ if canvas_domain and api_token and account_id:
             st.session_state.selected_term_id = selected_term['id']
          
          # --- Fetch and Filter Courses ---
-            url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
-            with st.spinner("Fetching courses for selected term..."):
-                all_courses = _paginated_get_from_api(url, headers)
-
-            filtered_courses = []
-            for course in all_courses:
-                # Only include Date Driven courses that have custom course dates and active enrollments
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
                 start = course.get("start_at")
                 end = course.get("end_at")
 
                 start_blank = not start or start.strip() == ""
                 end_blank = not end or end.strip() == ""
-                has_partial_date = (start and end_blank) or (end and start_blank)
+                has_start_no_end = start and end_blank
+                has_end_no_start = end and start_blank
+                has_partial_date = has_start_no_end or has_end_no_start
+
+                from datetime import datetime
+                now = datetime.utcnow()
+                is_currently_active = False
+                try:
+                    start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ") if start else None
+                    end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None
+                    if start_dt and end_dt:
+                        is_currently_active = start_dt <= now <= end_dt
+                except Exception:
+                    pass
+
+                if restrict and (has_partial_date or is_currently_active):
 
                 if restrict and has_partial_date:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
