@@ -45,10 +45,10 @@ for key, default_value in INITIAL_SESSION_STATE.items():
         st.session_state[key] = default_value
 
 # --- Credential Inputs ---
-st.header("Canvas Credentials")
-canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
-api_token = st.text_input("Canvas API Token", type="password")
-account_id = st.text_input("Canvas Account ID", placeholder="1")
+with st.expander("🔐 Canvas Credentials", expanded=not st.session_state.data_loaded_and_terms_fetched):
+    canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
+    api_token = st.text_input("Canvas API Token", type="password")
+    account_id = st.text_input("Canvas Account ID", placeholder="1")
 base_url = f"https://{canvas_domain}"
 headers = {"Authorization": f"Bearer {api_token}"}
 
@@ -213,6 +213,12 @@ with col_deselect_all:
 
 selected_course_ids = []
 
+# --- Make sure all checkboxes are initialized before rendering courses ---
+for course in filtered_courses:
+    course_id = str(course['id'])
+    if f"select_{course_id}" not in st.session_state:
+        st.session_state[f"select_{course_id}"] = False
+
 for course in filtered_courses:
     course_id = str(course['id'])
 
@@ -249,10 +255,16 @@ if filtered_courses:
         st.markdown("### 🛠️ Step 2: Define Participation Settings")
         st.info("Choose a participation mode and date range for each selected course.")
 
-        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+if "settings_collapsed" not in st.session_state:
+    st.session_state.settings_collapsed = False
 
-        if st.button("✅ Apply Settings to Selected Courses"):
-            apply_participation_settings(base_url, course_settings, headers)
+with st.expander("🛠️ Step 2: Define Participation Settings", expanded=not st.session_state.settings_collapsed):
+    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+
+    if st.button("✅ Apply Settings to Selected Courses"):
+        apply_participation_settings(base_url, course_settings, headers)
+        st.session_state.settings_collapsed = True  # Collapse after apply
+
     else:
         st.warning("⚠️ Please select at least one course above to proceed.")
 else:
