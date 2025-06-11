@@ -163,6 +163,24 @@ for course in all_courses:
 if "courses_collapsed" not in st.session_state:
     st.session_state.courses_collapsed = False
 
+def participation_settings_ui(key_prefix="bulk_"):
+    with st.expander("📋 Participation Settings for Selected Courses", expanded=True):
+        mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode")
+        start_date, end_date = None, None
+
+        if mode == "Date Driven":
+            start_date = st.date_input("Start Date", key=f"{key_prefix}start")
+            if st.checkbox("No End Date", key=f"{key_prefix}no_end"):
+                end_date = None
+            else:
+                end_date = st.date_input("End Date", key=f"{key_prefix}end")
+
+        return {
+            "mode": mode,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+
 # --- Step 2: Course Selection ---
 if filtered_courses:
     # Expander for Step 2 UI only
