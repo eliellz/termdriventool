@@ -181,13 +181,8 @@ def participation_settings_ui(key_prefix="bulk_"):
             "end_date": end_date
         }
 
-def apply_participation_settings(base_url, selected_courses, headers, applied_mode):
-    if not selected_courses:
-        st.info("No courses selected.")
-        return
-
+def apply_participation_settings(base_url, selected_courses, headers):
     updated = []
-    st.subheader("📤 Applying Participation Settings")
     total = len(selected_courses)
     progress = st.progress(0)
 
@@ -208,13 +203,10 @@ def apply_participation_settings(base_url, selected_courses, headers, applied_mo
             updated.append(course['course_id'])
         except Exception as e:
             st.error(f"❌ Failed to update course {course['course_id']}: {e}")
-
         progress.progress((i + 1) / total)
 
-    st.session_state["last_updates"] = updated
-    st.session_state["bulk_mode"] = applied_mode  # <— write AFTER API runs
     st.success("🎉 All selected courses have been processed.")
-
+    return updated  # ✅ return the list instead of setting session state
 
     # Save summary info in session state
     st.session_state["last_updates"] = updated
