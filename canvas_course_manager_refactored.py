@@ -64,8 +64,15 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
         data = resp.json()
         all_data.extend(data.get('enrollment_terms', data) if isinstance(data, dict) else data)
         links = resp.headers.get('Link', '').split(',')
-        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel=\"next\"' in l), None)
+        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel="next"' in l), None)
     return all_data
+
+def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
+    url = f"{base_url}/api/v1/courses/{course_id}/enrollments?type[]=StudentEnrollment&state[]=active"
+    resp = requests.get(url, headers=headers)
+    if resp.status_code == 200:
+        return len(resp.json())
+    return 0
 
 # --- File-Based Cache ---
 def _load_from_file_cache(filepath: str):
@@ -127,7 +134,7 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
         progress.progress((i + 1) / total)
     st.success("🎉 All selected courses have been processed.")
 
-# --- Example Term Loading Workflow (Partial) ---
+# --- Term and Course Selection Workflow ---
 if canvas_domain and api_token and account_id:
     if st.button("🚀 Load Canvas Terms"):
         terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
@@ -141,18 +148,35 @@ if canvas_domain and api_token and account_id:
 
     if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
         st.success("✅ Terms loaded successfully!")
-        term_names = [term['name'] for term in st.session_state.fetched_terms]
-        selected_index = st.selectbox("Available Enrollment Terms", list(range(len(term_names))), format_func=lambda i: f"{term_names[i]} (ID: {st.session_state.fetched_terms[i]['id']})")
+        term_names = ["--- Select a Term ---"] + [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
+        selected_index = st.selectbox("Select a Term", list(range(len(term_names))), format_func=lambda i: term_names[i])
 
-        selected_term = st.session_state.fetched_terms[selected_index]
-        st.session_state.selected_term_id = selected_term['id']
+        if selected_index != 0:
+            selected_term = st.session_state.fetched_terms[selected_index - 1]
+            st.session_state.selected_term_id = selected_term['id']
 
-        # --- Fetch Courses for Selected Term ---
-        st.markdown("---")
-        st.subheader(f"Courses for: {selected_term['name']}")
-        url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
-        with st.spinner("Fetching courses for selected term..."):
-            courses = _paginated_get_from_api(url, headers)
-        st.success(f"✅ Found {len(courses)} courses for term '{selected_term['name']}'")
+            # --- Fetch and Filter Courses ---
+            url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
+            with st.spinner("Fetching courses for selected term..."):
+                all_courses = _paginated_get_from_api(url, headers)
+
+            filtered_courses = []
+            for course in all_courses:
+                start = course.get("start_at")
+                end = course.get("end_at")
+                if (start or end):
+                    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+                    if enrollment_count > 0:
+                        filtered_courses.append(course)
+
+            if filtered_courses:
+                st.success(f"✅ {len(filtered_courses)} courses with custom dates and active enrollments found.")
+                selected_course_ids = [str(c['id']) for c in filtered_courses]
+                course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+
+                if st.button("Apply Settings to Selected Courses"):
+                    apply_participation_settings(base_url, course_settings, headers)
+            else:
+                st.info("No courses found with custom dates and active enrollments.")
 else:
     st.info("Enter Canvas credentials to begin.")
