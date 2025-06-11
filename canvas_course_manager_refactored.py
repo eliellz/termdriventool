@@ -192,26 +192,27 @@ if filtered_courses:
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
 
-    def participation_settings_ui(course_ids, courses, key_prefix=""):
-        settings = []
-        for course_id in course_ids:
-            course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
-            with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
-                mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
-                start_date, end_date = None, None
-                if mode == "Date Driven":
-                    start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
-                    if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
-                        end_date = None
-                    else:
-                        end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
-                settings.append({
-                    "course_id": course_id,
-                    "mode": mode,
-                    "start_date": start_date,
-                    "end_date": end_date
-                })
-        return settings
+def participation_settings_ui(course_ids, courses, key_prefix=""):
+    settings = []
+    for course_id in course_ids:
+        course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
+        with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
+            mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
+            start_date, end_date = None, None
+            if mode == "Date Driven":
+                start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
+                if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
+                    end_date = None
+                else:
+                    end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
+            settings.append({
+                "course_id": course_id,
+                "mode": mode,
+                "start_date": start_date,
+                "end_date": end_date
+            })
+    return settings  # ✅ This must be inside the function, at the same indent level as the for loop
+
 
         course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
         with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
