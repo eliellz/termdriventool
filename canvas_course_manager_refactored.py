@@ -154,26 +154,21 @@ if canvas_domain and api_token and account_id:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
          
-           # --- Fetch and Filter Courses ---
+         # --- Fetch and Filter Courses ---
             url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
             with st.spinner("Fetching courses for selected term..."):
                 all_courses = _paginated_get_from_api(url, headers)
 
             filtered_courses = []
             for course in all_courses:
-                # Only include if either start or end date is present (but not both blank)
-                start = course.get("start_at")
-                end = course.get("end_at")
+                # Only include courses that are Date Driven and have active student enrollments
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
-
-              if restrict:
+                if restrict:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
                     if enrollment_count > 0:
-                        # Determine participation setting mode
-                        restrict = course.get("restrict_enrollments_to_course_dates", False)
                         course["_active_enrollments"] = enrollment_count
                         course["_term"] = selected_term['name']
-                        course["_participation"] = "Date Driven" if restrict else "Term Driven"
+                        course["_participation"] = "Date Driven"
                         filtered_courses.append(course)
 
             if filtered_courses:
@@ -224,6 +219,6 @@ if canvas_domain and api_token and account_id:
                     st.info("Select at least one course to update.")
             else:
                 st.info("No courses found with partial date overrides and active student enrollments.")
-
+                
 else:
     st.info("Enter Canvas credentials to begin.")
