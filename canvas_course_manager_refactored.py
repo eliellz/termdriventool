@@ -165,9 +165,12 @@ if canvas_domain and api_token and account_id:
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
                 start = course.get("start_at")
                 end = course.get("end_at")
-                has_custom_date = start or end
 
-                if restrict and has_custom_date:
+                start_blank = not start or start.strip() == ""
+                end_blank = not end or end.strip() == ""
+                has_partial_date = (start and end_blank) or (end and start_blank)
+
+                if restrict and has_partial_date:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
                     if enrollment_count > 0:
                         course["_active_enrollments"] = enrollment_count
