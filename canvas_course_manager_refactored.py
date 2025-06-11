@@ -197,6 +197,14 @@ for course in all_courses:
     # ✅ Use direct API call to count active student enrollments
     active_student_count = get_enrollment_count(course_id, base_url, headers)
 
+        # 🔍 Debug why courses are excluded
+    if not has_dates:
+        st.write(f"⛔ Skipped {course_id} - no start/end date")
+    elif active_student_count == 0:
+        st.write(f"⛔ Skipped {course_id} - no active enrollments")
+    elif not course.get("restrict_enrollments_to_course_dates", False):
+        st.write(f"⛔ Skipped {course_id} - no override enabled")
+        
     # ✅ Only include if course has dates, active students, and date override is enabled
     if has_dates and active_student_count > 0 and course.get("restrict_enrollments_to_course_dates", False):
         course['_term'] = term_name
