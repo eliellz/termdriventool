@@ -250,13 +250,22 @@ def apply_participation_settings(base_url, selected_courses, headers):
 
 if filtered_courses:
     if selected_course_ids:
-        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-        if st.button("Apply Settings to Selected Courses"):
-            apply_participation_settings(base_url, course_settings, headers)
-            st.session_state.courses_collapsed = True
-            st.rerun()
-    else:
-        st.info("Select at least one course to update.")
+    settings = participation_settings_ui()
+
+    if st.button("Apply Settings to Selected Courses"):
+        selected_courses = [{
+            "course_id": course_id,
+            "mode": settings["mode"],
+            "start_date": settings["start_date"],
+            "end_date": settings["end_date"]
+        } for course_id in selected_course_ids]
+
+        apply_participation_settings(base_url, selected_courses, headers)
+        st.session_state.courses_collapsed = True
+        st.rerun()
+else:
+    st.info("Select at least one course to update.")
+
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
 
