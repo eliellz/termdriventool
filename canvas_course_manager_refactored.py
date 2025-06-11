@@ -244,10 +244,11 @@ if filtered_courses:
             deselect_all = st.checkbox("Deselect All Courses")
 
 # Course list shown outside the expander
+# --- Course List Display ---
 selected_course_ids = []
 for course in filtered_courses:
     course_id = str(course['id'])
-    
+
     if deselect_all:
         st.session_state[f"select_{course_id}"] = False
     elif select_all:
@@ -268,11 +269,10 @@ for course in filtered_courses:
             canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
             st.markdown(f"- [Open in Canvas]({canvas_link})")
 
-    # Collect selected course IDs
     if st.session_state.get(f"select_{course_id}", False):
         selected_course_ids.append(course_id)
 
-# ✅ Now this block runs ONCE, after the loop
+# ✅ Now outside the loop — once, not per course
 if selected_course_ids:
     settings = participation_settings_ui()
 
