@@ -234,8 +234,10 @@ if filtered_courses:
             apply_participation_settings(base_url, course_settings, headers)
     else:
         st.info("Select at least one course to update.")
+
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
+
 
 else:
     st.info("Enter Canvas credentials to begin.")
