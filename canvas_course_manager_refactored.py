@@ -219,51 +219,51 @@ for course in all_courses:
 
 if filtered_courses:
     with st.expander("📘 Step 2: Select and Apply Participation Settings", expanded=not st.session_state.courses_collapsed):
-    st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
+        st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
-    # Select All / Deselect All Toggle
-    st.markdown("### Course Selection")
-    col_select_all, col_deselect_all = st.columns(2)
-    with col_select_all:
-        select_all = st.checkbox("Select All Courses")
-    with col_deselect_all:
-        deselect_all = st.checkbox("Deselect All Courses")
+        col_select_all, col_deselect_all = st.columns(2)
+        with col_select_all:
+            select_all = st.checkbox("Select All Courses")
+        with col_deselect_all:
+            deselect_all = st.checkbox("Deselect All Courses")
 
-    selected_course_ids = []
-    for course in filtered_courses:
-        course_id = str(course['id'])
-        if deselect_all:
-            st.session_state[f"select_{course_id}"] = False
-            checked = False
-        elif select_all:
-            st.session_state[f"select_{course_id}"] = True
-            checked = True
+        selected_course_ids = []
+        for course in filtered_courses:
+            course_id = str(course['id'])
+
+            if deselect_all:
+                st.session_state[f"select_{course_id}"] = False
+                checked = False
+            elif select_all:
+                st.session_state[f"select_{course_id}"] = True
+                checked = True
+            else:
+                checked = st.session_state.get(f"select_{course_id}", False)
+
+            col1, col2 = st.columns([0.05, 0.95])
+            with col1:
+                checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+            with col2:
+                with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
+                    st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
+                    st.markdown(f"**Term:** {course['_term']}")
+                    st.markdown(f"**Participation Mode:** {course['_participation']}")
+                    st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
+                    st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
+                    canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                    st.markdown(f"[Open in Canvas]({canvas_link})")
+
+            if st.session_state.get(f"select_{course_id}", False):
+                selected_course_ids.append(course_id)
+
+        if selected_course_ids:
+            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+
+            if st.button("Apply Settings to Selected Courses"):
+                apply_participation_settings(base_url, course_settings, headers)
+                st.session_state.courses_collapsed = True
+                st.rerun()
         else:
-            checked = st.session_state.get(f"select_{course_id}", False)
-
-        col1, col2 = st.columns([0.05, 0.95])
-        with col1:
-            checked = st.checkbox("", key=f"select_{course_id}", value=checked)
-        with col2:
-            with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
-                st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
-                st.markdown(f"**Term:** {course['_term']}")
-                st.markdown(f"**Participation Mode:** {course['_participation']}")
-                st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
-                st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
-                canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-                st.markdown(f"[Open in Canvas]({canvas_link})")
-
-        if st.session_state.get(f"select_{course_id}", False):
-            selected_course_ids.append(course_id)
-
-    if selected_course_ids:
-        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-
-                        if st.button("Apply Settings to Selected Courses"):
-                    st.session_state.courses_collapsed = True
-            apply_participation_settings(base_url, course_settings, headers)
-    else:
-        st.info("Select at least one course to update.")
+            st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
