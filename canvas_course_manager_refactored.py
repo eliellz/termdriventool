@@ -220,10 +220,9 @@ def apply_participation_settings(base_url, selected_courses, headers, applied_mo
     st.session_state["last_updates"] = updated
     st.success("🎉 All selected courses have been processed.")
 
-
 # --- Step 2: Course Selection ---
 if filtered_courses:
-    # Expander for Step 2 UI only
+    # UI controls in an expander
     with st.expander("📘 Step 2: Select and Apply Participation Settings", expanded=not st.session_state.courses_collapsed):
         st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
@@ -233,7 +232,7 @@ if filtered_courses:
         with col_deselect_all:
             deselect_all = st.checkbox("Deselect All Courses")
 
-    # Show course list outside the expander
+    # Course list shown outside the expander
     selected_course_ids = []
     for course in filtered_courses:
         course_id = str(course['id'])
@@ -253,7 +252,6 @@ if filtered_courses:
         with col2:
             toggle_key = f"expand_{course_id}"
             expanded = st.toggle(f"📘 {course['name']} (ID: {course_id})", key=toggle_key)
-
             if expanded:
                 st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
                 st.markdown(f"- **Term:** {course['_term']}")
@@ -266,30 +264,28 @@ if filtered_courses:
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
 
-    # Unified Participation Settings UI (also outside expander)
-if selected_course_ids:
-    settings = participation_settings_ui()
+    # Participation Settings UI for selected courses
+    if selected_course_ids:
+        settings = participation_settings_ui()
 
-    if st.button("Apply Settings to Selected Courses"):
-        selected_courses = [{
-            "course_id": course_id,
-            "mode": settings["mode"],
-            "start_date": settings["start_date"],
-            "end_date": settings["end_date"]
-        } for course_id in selected_course_ids]
+        if st.button("Apply Settings to Selected Courses"):
+            selected_courses = [{
+                "course_id": course_id,
+                "mode": settings["mode"],
+                "start_date": settings["start_date"],
+                "end_date": settings["end_date"]
+            } for course_id in selected_course_ids]
 
-        selected_mode = settings["mode"]
+            selected_mode = settings["mode"]
 
-        apply_participation_settings(base_url, selected_courses, headers, selected_mode)
-
-        st.session_state.courses_collapsed = True
-        st.rerun()
-else:
-    st.info("Select at least one course to update.")
-
-
+            apply_participation_settings(base_url, selected_courses, headers, selected_mode)
+            st.session_state.courses_collapsed = True
+            st.rerun()
+    else:
+        st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
+
 
 # --- Summary of Recently Updated Courses ---
 if "last_updates" in st.session_state and st.session_state["last_updates"]:
