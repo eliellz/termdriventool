@@ -186,6 +186,7 @@ def apply_participation_settings(base_url, selected_courses, headers):
         st.info("No courses selected.")
         return
 
+    updated = []
     st.subheader("📤 Applying Participation Settings")
     total = len(selected_courses)
     progress = st.progress(0)
@@ -204,12 +205,14 @@ def apply_participation_settings(base_url, selected_courses, headers):
         try:
             resp = requests.put(url, headers=headers, json=payload)
             resp.raise_for_status()
-            st.success(f"✅ Updated course {course['course_id']}")
+            updated.append(course['course_id'])
         except Exception as e:
             st.error(f"❌ Failed to update course {course['course_id']}: {e}")
 
         progress.progress((i + 1) / total)
 
+    # Save summary info in session state
+    st.session_state["last_updates"] = updated
     st.success("🎉 All selected courses have been processed.")
 
 
