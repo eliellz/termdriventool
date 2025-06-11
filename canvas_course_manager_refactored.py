@@ -183,7 +183,7 @@ for course in all_courses[:5]:  # Show only first 5 courses
 
 
 
-# --- Display Matching Courses ---# --- Display Matching Courses ---
+# --- Display Matching Courses ---
 
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
