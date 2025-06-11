@@ -119,12 +119,13 @@ st.session_state.selected_term_id = selected_term['id']
 # --- Fetch and Filter Courses ---
 url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
 with st.spinner("Fetching courses for selected term..."):
-    if "fetched_courses" not in st.session_state or st.session_state.get("force_refetch", False):
+if "fetched_courses" not in st.session_state or st.session_state.get("force_refetch", False):
     all_courses = _paginated_get_from_api(url, headers)
     st.session_state["fetched_courses"] = all_courses
     st.session_state["force_refetch"] = False
 else:
     all_courses = st.session_state["fetched_courses"]
+
 
 filtered_courses = []
 for course in all_courses:
