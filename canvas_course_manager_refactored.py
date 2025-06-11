@@ -87,7 +87,7 @@ with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=no
     headers = {"Authorization": f"Bearer {api_token}"}
 
     if canvas_domain and api_token and account_id:
-        if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
+        if st.button("🚀 Load Canvas Terms", key="load_terms_btn_1"):
             terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
             if not terms:
                 url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
@@ -180,7 +180,7 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
 
 # --- Term and Course Selection Workflow ---
 if canvas_domain and api_token and account_id:
-    if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
+    if st.button("🚀 Load Canvas Terms", key="load_terms_btn_2"):
         st.session_state.credentials_collapsed = True  # ✅ INDENTED under the 'if'
         terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
         if not terms:
