@@ -67,18 +67,18 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
     return all_data
 
 # --- Term and Course Selection Workflow ---
-if canvas_domain and api_token:
-    if st.button("Load All Courses Without Filtering"):
+if canvas_domain and api_token and account_id:
+    if st.button("Load Conroe ISD Account Courses"):
         st.session_state.data_loaded_and_terms_fetched = True
         st.rerun()
 
 if st.session_state.data_loaded_and_terms_fetched:
-    # --- Fetch All Courses ---
-    url = f"{base_url}/api/v1/courses?per_page=100&include[]=enrollments"
-    with st.spinner("Fetching all courses..."):
+    # --- Fetch Account Courses ---
+    url = f"{base_url}/api/v1/accounts/{account_id}/courses?per_page=100&include[]=enrollments"
+    with st.spinner("Fetching Conroe ISD courses..."):
         all_courses = _paginated_get_from_api(url, headers)
 
-    st.subheader("Debug: All Courses Fetched")
+    st.subheader("Debug: Account-based Courses Fetched")
     st.code(url, language="bash")
     redacted_headers = {k: ("***" if k.lower() == "authorization" else v) for k, v in headers.items()}
     st.write("Request Headers:", redacted_headers)
@@ -87,8 +87,8 @@ if st.session_state.data_loaded_and_terms_fetched:
     if not all_courses:
         st.error("No courses returned. Possible reasons:")
         st.markdown("""
-        - Invalid Canvas domain or API token
-        - The token doesn’t have permission to view any courses
+        - Invalid Canvas domain, API token, or account ID
+        - The token doesn’t have permission to view courses for this account
         - Canvas API throttling or server error
         """)
         st.stop()
