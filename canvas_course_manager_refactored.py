@@ -167,36 +167,34 @@ url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={sele
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
+# --- Filter and Prepare Courses ---
 filtered_courses = []
+
 for course in all_courses:
-    restrict = course.get("restrict_enrollments_to_course_dates", False)
-    start = course.get("start_at")
-    end = course.get("end_at")
+    course_id = course.get("id")
+    term_name = course.get("enrollment_term_id")
+    participation_mode = course.get("course_format") or "term"
 
-    start_blank = not start or start.strip() == ""
-    end_blank = not end or end.strip() == ""
-    has_start_no_end = start and end_blank
-    has_end_no_start = end and start_blank
-    has_partial_date = has_start_no_end or has_end_no_start
+    participation_override = course.get("restrict_enrollments_to_course_dates", False)
+    start_date = course.get("start_at")
+    end_date = course.get("end_at")
 
-    now = datetime.utcnow()
-    is_currently_active = False
-    try:
-        start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ") if start else None
-        end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None
-        if start_dt and end_dt:
-            is_currently_active = start_dt <= now <= end_dt
-    except Exception:
-        pass
+    has_partial_dates = bool(start_date) != bool(end_date)  # Only one is set
+    is_active_now = course.get('workflow_state') == 'available'
 
-    if restrict and (has_partial_date or is_currently_active):
-        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-        if enrollment_count > 0:
-            course["_active_enrollments"] = enrollment_count
-            course["_term"] = selected_term['name']
-            course["_participation"] = "Date Driven"
-            filtered_courses.append(course)
+    # ✅ Count active student enrollments
+    active_student_enrollments = [
+        e for e in course.get('enrollments', [])
+        if e.get('type') == 'StudentEnrollment' and e.get('enrollment_state') == 'active'
+    ]
 
+    if participation_override and (has_partial_dates or is_active_now) and active_student_enrollments:
+        course['_term'] = term_name
+        course['_participation'] = participation_mode
+        course['_active_enrollments'] = len(active_student_enrollments)  # ✅ Correct count
+        filtered_courses.append(course)
+
+# --- Display Matching Courses ---
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
@@ -206,7 +204,7 @@ if filtered_courses:
         if f"select_{course_id}" not in st.session_state:
             st.session_state[f"select_{course_id}"] = False
 
-    # --- UI Header and Course Selection Controls ---
+    # --- Course Selection UI ---
     st.markdown("### 📋 Step 1: Select Courses to Update")
     st.info("Scroll through the list of courses below and check the ones you'd like to update.")
 
@@ -218,7 +216,6 @@ if filtered_courses:
 
     selected_course_ids = []
 
-    # --- Render Courses ---
     for course in filtered_courses:
         course_id = str(course['id'])
 
@@ -236,11 +233,11 @@ if filtered_courses:
             with col2:
                 with st.expander(f"📘 {course['name']} (ID: {course_id})", expanded=False):
                     st.markdown(f"**🧑‍🎓 Active Enrollments:** {course['_active_enrollments']}")
-                    st.markdown(f"**📆 Term:** `{course['_term']}`")
+                    st.markdown(f"**📆 Term ID:** `{course['_term']}`")
                     st.markdown(f"**⚙️ Mode:** `{course['_participation']}`")
-                    st.markdown(f"**Start Date:** `{course.get('start_at', 'None')}`")
-                    st.markdown(f"**End Date:** `{course.get('end_at', 'None')}`")
-                    canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                    st.markdown(f"**📅 Start Date:** `{course.get('start_at', 'None')}`")
+                    st.markdown(f"**📅 End Date:** `{course.get('end_at', 'None')}`")
+                    canvas_link = f"https://{canvas_domain}/courses/{course_id}"
                     st.markdown(f"[🔗 Open in Canvas]({canvas_link})")
 
         if st.session_state.get(f"select_{course_id}", False):
