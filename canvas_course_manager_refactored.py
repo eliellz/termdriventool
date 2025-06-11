@@ -251,7 +251,7 @@ if selected_course_ids:
 
     if st.button("✅ Apply Settings to Selected Courses"):
         apply_participation_settings(base_url, course_settings, headers)
-else:
+    else:
     st.warning("⚠️ Please select at least one course above to proceed.")
 
 else:
