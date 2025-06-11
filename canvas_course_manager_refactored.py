@@ -166,7 +166,7 @@ if canvas_domain and api_token and account_id:
                 end = course.get("end_at")
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
 
-               if restrict:
+              if restrict:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
                     if enrollment_count > 0:
                         # Determine participation setting mode
@@ -224,5 +224,6 @@ if canvas_domain and api_token and account_id:
                     st.info("Select at least one course to update.")
             else:
                 st.info("No courses found with partial date overrides and active student enrollments.")
+
 else:
     st.info("Enter Canvas credentials to begin.")
