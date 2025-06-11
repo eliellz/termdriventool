@@ -193,14 +193,17 @@ if filtered_courses:
         with col1:
             checked = st.checkbox("", key=f"select_{course_id}", value=checked)
         with col2:
-            st.markdown(f"**📘 {course['name']} (ID: {course_id})**")
-            st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
-            st.markdown(f"- **Term:** {course['_term']}")
-            st.markdown(f"- **Participation Mode:** {course['_participation']}")
-            st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
-            st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
-            canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-            st.markdown(f"- [Open in Canvas]({canvas_link})")
+            toggle_key = f"expand_{course_id}"
+            expanded = st.toggle(f"📘 {course['name']} (ID: {course_id})", key=toggle_key)
+
+            if expanded:
+                st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
+                st.markdown(f"- **Term:** {course['_term']}")
+                st.markdown(f"- **Participation Mode:** {course['_participation']}")
+                st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
+                st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
+                canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                st.markdown(f"- [Open in Canvas]({canvas_link})")
 
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
