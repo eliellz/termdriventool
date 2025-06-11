@@ -155,14 +155,7 @@ for course in all_courses:
         pass
 
 if restrict and (has_partial_date or is_currently_active):
-    course_id = str(course['id'])
-
-    if course_id in st.session_state['cached_enrollment_counts']:
-        enrollment_count = st.session_state['cached_enrollment_counts'][course_id]
-    else:
-        enrollment_count = get_enrollment_count(course_id, base_url, headers)
-        st.session_state['cached_enrollment_counts'][course_id] = enrollment_count
-
+    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
     if enrollment_count > 0:
         course["_active_enrollments"] = enrollment_count
         course["_term"] = selected_term['name']
