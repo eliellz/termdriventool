@@ -67,7 +67,7 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
     return all_data
 
 def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
-    url = f"{base_url}/api/v1/accounts/{account_id}/courses?per_page=100"
+    url = f"{base_url}/api/v1/courses/{course_id}/enrollments?type[]=StudentEnrollment&state[]=active"
     resp = requests.get(url, headers=headers)
     if resp.status_code == 200:
         return len(resp.json())
@@ -161,11 +161,7 @@ if not selected_term:
     st.stop()
 
 # --- Fetch and Filter Courses ---
-url = (
-    f"{base_url}/api/v1/accounts/{account_id}/courses"
-    f"?per_page=100"
-)
-
+url = f"{base_url}/api/v1/courses?per_page=100"
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
