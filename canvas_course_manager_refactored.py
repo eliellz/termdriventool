@@ -9,6 +9,18 @@ import pickle
 if "trigger_apply" not in st.session_state:
     st.session_state["trigger_apply"] = False
 
+import requests
+
+def log_to_google_sheet_webhook(entry: dict):
+    webhook_url = "https://script.google.com/a/macros/conroeisd.net/s/AKfycby3ZXxtlSer7o3zJQjHrTEfu31xNcuO9Yc24xTJjWqIybDXjicJYrnf7U4Iexlq8QcM_A/exec"  
+    try:
+        resp = requests.post(webhook_url, json=entry)
+        if resp.status_code != 200:
+            st.error(f"Logging failed: {resp.text}")
+    except Exception as e:
+        st.error(f"Error sending log to Google Sheet: {e}")
+
+
 # --- Configuration ---
 CACHE_DIR = ".canvas_cache"
 TERMS_CACHE_FILE = os.path.join(CACHE_DIR, "terms.pkl")
@@ -230,7 +242,22 @@ if st.session_state.get("trigger_apply", False):
     st.session_state["bulk_mode"] = payload["selected_mode"]
     st.session_state["courses_collapsed"] = True
     st.session_state["trigger_apply"] = False
+
+    # 📝 Log changes to Google Sheet
+    for cid in updated_ids:
+        course = next((c for c in filtered_courses if str(c["id"]) == cid), None)
+        if course:
+            log_entry = {
+                "course_id": cid,
+                "course_name": course["name"],
+                "participation_mode": payload["selected_mode"],
+                "start_date": course.get("start_at", ""),
+                "end_date": course.get("end_at", "")
+            }
+            log_to_google_sheet_webhook(log_entry)
+
     st.rerun()
+
 
 # --- Step 2: Course Selection ---
 if filtered_courses:
