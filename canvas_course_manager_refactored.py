@@ -161,14 +161,6 @@ if not selected_term:
     st.error("❌ No term selected. Please select a term above.")
     st.stop()
 
-# --- 🔎 Direct test fetch for course 166508 ---
-test_url = f"{base_url}/api/v1/courses/166508?include[]=enrollments"
-test_response = requests.get(test_url, headers=headers)
-st.subheader("📎 Debug: Direct Fetch for Course 166508")
-if test_response.status_code == 200:
-    st.json(test_response.json())
-else:
-    st.error(f"❌ Failed to fetch course 166508 — status code: {test_response.status_code}")
 
 # --- Fetch and Filter Courses ---
 from datetime import datetime
@@ -201,17 +193,15 @@ for course in all_courses:
     end_date = course.get("end_at")
     has_dates = bool(start_date) or bool(end_date)
 
-    # ✅ Count active student enrollments
-    active_student_enrollments = [
-        e for e in course.get('enrollments', [])
-        if e.get('type') == 'StudentEnrollment' and e.get('enrollment_state') == 'active'
-    ]
+    # ✅ Use direct API call to count active student enrollments
+    active_student_count = get_enrollment_count(course_id, base_url, headers)
 
-    if has_dates and active_student_enrollments:
+    if has_dates and active_student_count > 0:
         course['_term'] = term_name
         course['_participation'] = participation_mode
-        course['_active_enrollments'] = len(active_student_enrollments)
+        course['_active_enrollments'] = active_student_count
         filtered_courses.append(course)
+
 
 # --- Display Matching Courses ---
 if filtered_courses:
