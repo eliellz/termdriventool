@@ -211,7 +211,8 @@ def participation_settings_ui(course_ids, courses, key_prefix=""):
                 "start_date": start_date,
                 "end_date": end_date
             })
-    return settings  # ✅ This must be inside the function, at the same indent level as the for loop
+    return settings
+
 
 
         course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
