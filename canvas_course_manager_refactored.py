@@ -181,6 +181,7 @@ for course in all_courses[:5]:  # Show only first 5 courses
     st.markdown(f"**Course ID:** {course.get('id')}")
     st.write("Enrollments:", course.get("enrollments", "⚠️ Missing"))
 
+
 # --- Filter and Prepare Courses ---
 filtered_courses = []
 
@@ -196,14 +197,15 @@ for course in all_courses:
     # ✅ Use direct API call to count active student enrollments
     active_student_count = get_enrollment_count(course_id, base_url, headers)
 
-    if has_dates and active_student_count > 0:
+    # ✅ Only include if course has dates, active students, and date override is enabled
+    if has_dates and active_student_count > 0 and course.get("restrict_enrollments_to_course_dates", False):
         course['_term'] = term_name
         course['_participation'] = participation_mode
         course['_active_enrollments'] = active_student_count
         filtered_courses.append(course)
 
-
 # --- Display Matching Courses ---
+
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
