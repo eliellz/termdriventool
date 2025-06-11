@@ -213,8 +213,9 @@ def participation_settings_ui(course_ids, courses, key_prefix=""):
             })
     return settings
 
-
-
+def participation_settings_ui(course_ids, courses, key_prefix=""):
+    settings = []
+    for course_id in course_ids:
         course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
         with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
             mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
@@ -232,6 +233,7 @@ def participation_settings_ui(course_ids, courses, key_prefix=""):
                 "end_date": end_date
             })
     return settings
+
 
 def apply_participation_settings(base_url, selected_courses, headers):
     if not selected_courses:
