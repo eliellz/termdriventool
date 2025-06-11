@@ -165,45 +165,49 @@ if filtered_courses:
             st.session_state[f"select_{course_id}"] = False
             checked = False
         elif select_all:
-            st.session_state[f"select_{course_id}"] = True
-            checked = True
-        else:
-            checked = st.session_state.get(f"select_{course_id}", False)
+    st.session_state[f"select_{course_id}"] = True
+    checked = True
+else:
+    checked = st.session_state.get(f"select_{course_id}", False)
 
-        checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+col1, col2 = st.columns([0.05, 0.95])
+with col1:
+    checked = st.checkbox("", key=f"select_{course_id}", value=checked)
 
-        with st.expander(f"📘 {course['name']} (ID: {course_id})", expanded=False):
-            st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
-            st.markdown(f"- **Term:** {course['_term']}")
-            st.markdown(f"- **Participation Mode:** {course['_participation']}")
-            st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
-            st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
-            canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-            st.markdown(f"- [Open in Canvas]({canvas_link})")
+with col2:
+    with st.expander(f"📘 {course['name']} (ID: {course_id})", expanded=False):
+        st.markdown(f"- **Active Student Enrollments:** {course['_active_enrollments']}")
+        st.markdown(f"- **Term:** {course['_term']}")
+        st.markdown(f"- **Participation Mode:** {course['_participation']}")
+        st.markdown(f"- **Start Date:** {course.get('start_at', 'None')}")
+        st.markdown(f"- **End Date:** {course.get('end_at', 'None')}")
+        canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+        st.markdown(f"- [Open in Canvas]({canvas_link})")
 
-        if st.session_state.get(f"select_{course_id}", False):
-            selected_course_ids.append(course_id)
+if st.session_state.get(f"select_{course_id}", False):
+    selected_course_ids.append(course_id)
 
-    def participation_settings_ui(course_ids, courses, key_prefix=""):
-        settings = []
-        for course_id in course_ids:
-            course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
-            with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
-                mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
-                start_date, end_date = None, None
-                if mode == "Date Driven":
-                    start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
-                    if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
-                        end_date = None
-                    else:
-                        end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
-                settings.append({
-                    "course_id": course_id,
-                    "mode": mode,
-                    "start_date": start_date,
-                    "end_date": end_date
-                })
-        return settings
+def participation_settings_ui(course_ids, courses, key_prefix=""):
+    settings = []
+    for course_id in course_ids:
+        course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
+        with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
+            mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
+            start_date, end_date = None, None
+            if mode == "Date Driven":
+                start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
+                if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
+                    end_date = None
+                else:
+                    end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
+            settings.append({
+                "course_id": course_id,
+                "mode": mode,
+                "start_date": start_date,
+                "end_date": end_date
+            })
+    return settings
+
 
 
         def apply_participation_settings(base_url, selected_courses, headers):
