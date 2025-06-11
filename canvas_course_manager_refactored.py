@@ -98,7 +98,7 @@ def _save_to_file_cache(filepath: str, data: list[dict]):
 # --- Step 1: Credentials & Term Selection ---
 with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=not st.session_state.credentials_collapsed):
     st.header("Canvas Credentials")
-    user_email = st.text_input("Your **email address"**)", key="log_email")
+    user_email = st.text_input("Your email address", key="log_email")
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
     api_token = st.text_input("Canvas API Token", type="password")
     account_id = st.text_input("Canvas Account ID", placeholder="1")
