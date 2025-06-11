@@ -154,7 +154,7 @@ if canvas_domain and api_token and account_id:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
          
-            # --- Fetch and Filter Courses ---
+           # --- Fetch and Filter Courses ---
             url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
             with st.spinner("Fetching courses for selected term..."):
                 all_courses = _paginated_get_from_api(url, headers)
@@ -179,23 +179,41 @@ if canvas_domain and api_token and account_id:
             if filtered_courses:
                 st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
-                # Select All Toggle
-                select_all = st.checkbox("Select All Courses")
+                # Select All / Deselect All Toggle
+                st.markdown("### Course Selection")
+                col_select_all, col_deselect_all = st.columns(2)
+                with col_select_all:
+                    select_all = st.checkbox("Select All Courses")
+                with col_deselect_all:
+                    deselect_all = st.checkbox("Deselect All Courses")
 
                 selected_course_ids = []
                 for course in filtered_courses:
                     course_id = str(course['id'])
-                    if select_all or st.checkbox(f"Select {course['name']}", key=f"select_{course_id}"):
-                        selected_course_ids.append(course_id)
+                    if deselect_all:
+                        st.session_state[f"select_{course_id}"] = False
+                        checked = False
+                    elif select_all:
+                        st.session_state[f"select_{course_id}"] = True
+                        checked = True
+                    else:
+                        checked = st.session_state.get(f"select_{course_id}", False)
 
-                    with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
-                        st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
-                        st.markdown(f"**Term:** {course['_term']}")
-                        st.markdown(f"**Participation Mode:** {course['_participation']}")
-                        st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
-                        st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
-                        canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-                        st.markdown(f"[Open in Canvas]({canvas_link})")
+                    col1, col2 = st.columns([0.05, 0.95])
+                    with col1:
+                        checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+                    with col2:
+                        with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
+                            st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
+                            st.markdown(f"**Term:** {course['_term']}")
+                            st.markdown(f"**Participation Mode:** {course['_participation']}")
+                            st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
+                            st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
+                            canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                            st.markdown(f"[Open in Canvas]({canvas_link})")
+
+                    if st.session_state.get(f"select_{course_id}", False):
+                        selected_course_ids.append(course_id)
 
                 if selected_course_ids:
                     course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
