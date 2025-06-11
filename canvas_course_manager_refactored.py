@@ -167,6 +167,12 @@ url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={sele
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
+# --- Debug: Check if course 166508 is present and what it includes ---
+for course in all_courses:
+    if str(course.get("id")) == "166508":
+        st.subheader("🔍 Raw Data for Course 166508")
+        st.write(course)
+
 # --- Filter and Prepare Courses ---
 filtered_courses = []
 
