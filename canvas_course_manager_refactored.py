@@ -262,21 +262,33 @@ if filtered_courses:
             selected_course_ids.append(course_id)
 
     # Unified Participation Settings UI (also outside expander)
-    if selected_course_ids:
-        settings = participation_settings_ui()
+if selected_course_ids:
+    settings = participation_settings_ui()
 
-        if st.button("Apply Settings to Selected Courses"):
-            selected_courses = [{
-                "course_id": course_id,
-                "mode": settings["mode"],
-                "start_date": settings["start_date"],
-                "end_date": settings["end_date"]
-            } for course_id in selected_course_ids]
+    if st.button("Apply Settings to Selected Courses"):
+    selected_courses = [{
+        "course_id": course_id,
+        "mode": settings["mode"],
+        "start_date": settings["start_date"],
+        "end_date": settings["end_date"]
+    } for course_id in selected_course_ids]
 
-            apply_participation_settings(base_url, selected_courses, headers)
-            st.session_state.courses_collapsed = True
-            st.rerun()
+    st.session_state['bulk_mode'] = settings["mode"]  # <--- Add this line
+    apply_participation_settings(base_url, selected_courses, headers)
+    st.session_state.courses_collapsed = True
+    st.rerun()
+
+
     else:
         st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
+
+# --- Summary of Recently Updated Courses ---
+if "last_updates" in st.session_state and st.session_state["last_updates"]:
+    st.markdown("### ✅ Recently Updated Courses")
+    for cid in st.session_state["last_updates"]:
+        course = next((c for c in filtered_courses if str(c["id"]) == cid), None)
+        if course:
+            st.markdown(f"- 📘 **{course['name']} (ID: {cid})** — {st.session_state.get('bulk_mode', 'Date/Term')} mode applied")
+
