@@ -1,8 +1,9 @@
+# canvas_course_manager_refactored.py
+
 import streamlit as st
 import requests
 import json
-from datetime import datetime, timezone
-from dateutil.parser import parse
+from datetime import datetime
 import logging
 import os
 import pickle
@@ -88,26 +89,24 @@ def _save_to_file_cache(filepath: str, data: list[dict]):
     with open(filepath, 'wb') as f:
         pickle.dump((data, datetime.now()), f)
 
-def _delete_course_file_cache(term_id: str):
-    path = f"{COURSES_CACHE_FILE_PREFIX}{term_id}.pkl"
-    if os.path.exists(path):
-        os.remove(path)
-
 # --- Participation Settings UI ---
 def participation_settings_ui(course_ids: list[str], courses: list[dict], key_prefix: str = "") -> list[dict]:
     settings = []
     for course_id in course_ids:
         course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
-        with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=True):
+        with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
             mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
             start_date, end_date = None, None
             if mode == "Date Driven":
                 start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
-                end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
+                if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
+                    end_date = None
+                else:
+                    end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
             settings.append({"course_id": course_id, "mode": mode, "start_date": start_date, "end_date": end_date})
     return settings
 
-# --- Apply Participation Settings ---
+# --- Apply Settings ---
 def apply_participation_settings(base_url: str, selected_courses: list[dict], headers: dict):
     if not selected_courses:
         st.info("No courses selected.")
@@ -154,8 +153,7 @@ if canvas_domain and api_token and account_id:
         if selected_index != 0:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
-
-      
+         
             # --- Fetch and Filter Courses ---
             url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
             with st.spinner("Fetching courses for selected term..."):
@@ -163,34 +161,50 @@ if canvas_domain and api_token and account_id:
 
             filtered_courses = []
             for course in all_courses:
+                # Only include if either start or end date is present (but not both blank)
                 start = course.get("start_at")
                 end = course.get("end_at")
-                if start is not None or end is not None:
-                    if start != "" or end != "":
-                        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-                        if enrollment_count > 0:
-                            course["_active_enrollments"] = enrollment_count
-                            course["_term"] = selected_term['name']
-                            filtered_courses.append(course)
+                has_custom_date = (start and not end) or (end and not start)
+
+                if has_custom_date:
+                    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+                    if enrollment_count > 0:
+                        # Determine participation setting mode
+                        restrict = course.get("restrict_enrollments_to_course_dates", False)
+                        course["_active_enrollments"] = enrollment_count
+                        course["_term"] = selected_term['name']
+                        course["_participation"] = "Date Driven" if restrict else "Term Driven"
+                        filtered_courses.append(course)
 
             if filtered_courses:
-                st.success(f"✅ {len(filtered_courses)} courses with custom dates and active enrollments found.")
+                st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
+                # Select All Toggle
+                select_all = st.checkbox("Select All Courses")
+
+                selected_course_ids = []
                 for course in filtered_courses:
-                    with st.expander(f"{course['name']} (ID: {course['id']})", expanded=False):
+                    course_id = str(course['id'])
+                    if select_all or st.checkbox(f"Select {course['name']}", key=f"select_{course_id}"):
+                        selected_course_ids.append(course_id)
+
+                    with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
                         st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
                         st.markdown(f"**Term:** {course['_term']}")
+                        st.markdown(f"**Participation Mode:** {course['_participation']}")
                         st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
                         st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
                         canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
                         st.markdown(f"[Open in Canvas]({canvas_link})")
 
-                selected_course_ids = [str(c['id']) for c in filtered_courses]
-                course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+                if selected_course_ids:
+                    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
-                if st.button("Apply Settings to Selected Courses"):
-                    apply_participation_settings(base_url, course_settings, headers)
+                    if st.button("Apply Settings to Selected Courses"):
+                        apply_participation_settings(base_url, course_settings, headers)
+                else:
+                    st.info("Select at least one course to update.")
             else:
-                st.info("No courses found with custom dates and active enrollments.")
+                st.info("No courses found with partial date overrides and active student enrollments.")
 else:
     st.info("Enter Canvas credentials to begin.")
