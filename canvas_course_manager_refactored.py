@@ -153,6 +153,8 @@ if canvas_domain and api_token and account_id:
             st.session_state.selected_term_id = selected_term['id']
          
 # --- Fetch and Filter Courses ---
+from datetime import datetime
+
 url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
@@ -169,7 +171,6 @@ for course in all_courses:
     has_end_no_start = end and start_blank
     has_partial_date = has_start_no_end or has_end_no_start
 
-    from datetime import datetime
     now = datetime.utcnow()
     is_currently_active = False
     try:
@@ -187,6 +188,7 @@ for course in all_courses:
             course["_term"] = selected_term['name']
             course["_participation"] = "Date Driven"
             filtered_courses.append(course)
+
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
@@ -231,7 +233,7 @@ if filtered_courses:
 
         if st.button("Apply Settings to Selected Courses"):
             apply_participation_settings(base_url, course_settings, headers)
-else:
+    else:
         st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
