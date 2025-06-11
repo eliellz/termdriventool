@@ -270,9 +270,12 @@ if filtered_courses:
 
             selected_mode = settings["mode"]
 
-            apply_participation_settings(base_url, selected_courses, headers, selected_mode)
-            st.session_state.courses_collapsed = True
+            updated_ids = apply_participation_settings(base_url, selected_courses, headers)
+            st.session_state["last_updates"] = updated_ids
+            st.session_state["bulk_mode"] = selected_mode
+            st.session_state["courses_collapsed"] = True
             st.rerun()
+
     else:
         st.info("Select at least one course to update.")
 else:
