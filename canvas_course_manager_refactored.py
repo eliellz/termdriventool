@@ -187,7 +187,6 @@ for course in all_courses:
             course["_term"] = selected_term['name']
             course["_participation"] = "Date Driven"
             filtered_courses.append(course)
-
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
@@ -232,9 +231,10 @@ if filtered_courses:
 
         if st.button("Apply Settings to Selected Courses"):
             apply_participation_settings(base_url, course_settings, headers)
-    else:
+else:
         st.info("Select at least one course to update.")
 else:
-        st.info("No courses found with partial date overrides and active student enrollments.")
+    st.info("No courses found with partial date overrides and active student enrollments.")
+
 else:
     st.info("Enter Canvas credentials to begin.")
