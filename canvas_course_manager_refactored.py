@@ -200,7 +200,6 @@ for course in all_courses:
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
-   
 # --- Improved Course Selection & Settings UI ---
 
 st.markdown("### 📋 Step 1: Select Courses to Update")
@@ -213,10 +212,10 @@ with col_deselect_all:
     deselect_all = st.checkbox("🚫 Deselect All Courses")
 
 selected_course_ids = []
+
 for course in filtered_courses:
     course_id = str(course['id'])
 
-    # Set checkbox state
     if deselect_all:
         st.session_state[f"select_{course_id}"] = False
         checked = False
@@ -229,7 +228,7 @@ for course in filtered_courses:
     with st.container():
         col1, col2 = st.columns([0.05, 0.95])
         with col1:
-            checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+            st.session_state[f"select_{course_id}"] = st.checkbox("", key=f"select_{course_id}", value=checked)
         with col2:
             with st.expander(f"📘 {course['name']} (ID: {course_id})", expanded=False):
                 st.markdown(f"**🧑‍🎓 Active Enrollments:** {course['_active_enrollments']}")
@@ -240,10 +239,9 @@ for course in filtered_courses:
                 canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
                 st.markdown(f"[🔗 Open in Canvas]({canvas_link})")
 
-    if st.session_state.get(f"select_{course_id}", False):
+    if st.session_state[f"select_{course_id}"]:
         selected_course_ids.append(course_id)
 
-# --- Participation Settings ---
 if selected_course_ids:
     st.markdown("---")
     st.markdown("### 🛠️ Step 2: Define Participation Settings")
