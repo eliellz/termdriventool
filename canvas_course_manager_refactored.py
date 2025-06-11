@@ -74,6 +74,22 @@ def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
         return len(resp.json())
     return 0
 
+# --- DEBUG: Verify API response ---
+st.subheader("🛠 Debug Info: API Response Check")
+
+# 1. Show raw API URL (did term ID insert properly?)
+st.code(url, language="bash")
+
+# 2. Show total number of courses fetched
+st.write(f"🔎 Fetched {len(all_courses)} courses from Canvas API")
+
+# 3. Show first few raw course objects
+if all_courses:
+    st.json(all_courses[:2])  # Preview 2 sample courses
+else:
+    st.warning("⚠️ No courses returned. Check your term ID, headers, or permissions.")
+
+
 # --- File-Based Cache ---
 def _load_from_file_cache(filepath: str):
     if os.path.exists(filepath):
