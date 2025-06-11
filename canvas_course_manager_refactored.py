@@ -1,5 +1,3 @@
-# canvas_course_manager_refactored.py
-
 import streamlit as st
 import requests
 import json
@@ -140,5 +138,10 @@ if canvas_domain and api_token and account_id:
         st.session_state.fetched_terms = terms
         st.session_state.data_loaded_and_terms_fetched = True
         st.rerun()
+
+    if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
+        st.success("✅ Terms loaded successfully!")
+        term_options = [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
+        selected_term = st.selectbox("Available Enrollment Terms", term_options)
 else:
     st.info("Enter Canvas credentials to begin.")
