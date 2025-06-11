@@ -241,18 +241,15 @@ if filtered_courses:
     for course in filtered_courses:
         course_id = str(course['id'])
 
-        if deselect_all:
-            st.session_state[f"select_{course_id}"] = False
-            checked = False
-        elif select_all:
-            st.session_state[f"select_{course_id}"] = True
-            checked = True
-        else:
-            checked = st.session_state.get(f"select_{course_id}", False)
+       if deselect_all:
+    st.session_state[f"select_{course_id}"] = False
+elif select_all:
+    st.session_state[f"select_{course_id}"] = True
 
-        col1, col2 = st.columns([0.05, 0.95])
-        with col1:
-            checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+col1, col2 = st.columns([0.05, 0.95])
+with col1:
+    st.checkbox("", key=f"select_{course_id}")
+
         with col2:
             toggle_key = f"expand_{course_id}"
             expanded = st.toggle(f"📘 {course['name']} (ID: {course_id})", key=toggle_key)
@@ -267,6 +264,7 @@ if filtered_courses:
 
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
+
 
     if selected_course_ids:
         settings = participation_settings_ui()
