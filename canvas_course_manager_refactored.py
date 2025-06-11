@@ -233,31 +233,37 @@ if filtered_courses:
 
 
 
-        def apply_participation_settings(base_url, selected_courses, headers):
-            if not selected_courses:
-                st.info("No courses selected.")
-                return
-            st.subheader("📤 Applying Participation Settings")
-            total = len(selected_courses)
-            progress = st.progress(0)
-            for i, course in enumerate(selected_courses):
-                url = f"{base_url}/api/v1/courses/{course['course_id']}"
-                payload = {
-                    "course": {
-                        "start_at": f"{course['start_date']}T00:00:00Z" if course['mode'] == "Date Driven" and course['start_date'] else None,
-                        "end_at": f"{course['end_date']}T23:59:59Z" if course['mode'] == "Date Driven" and course['end_date'] else None,
-                        "restrict_enrollments_to_course_dates": course['mode'] == "Date Driven"
-                    },
-                    "override_sis_stickiness": True
-                }
-                try:
-                    resp = requests.put(url, headers=headers, json=payload)
-                    resp.raise_for_status()
-                    st.success(f"✅ Updated course {course['course_id']}")
-                except Exception as e:
-                    st.error(f"❌ Failed to update course {course['course_id']}: {e}")
-                progress.progress((i + 1) / total)
-            st.success("🎉 All selected courses have been processed.")
+def apply_participation_settings(base_url, selected_courses, headers):
+    if not selected_courses:
+        st.info("No courses selected.")
+        return
+
+    st.subheader("📤 Applying Participation Settings")
+    total = len(selected_courses)
+    progress = st.progress(0)
+
+    for i, course in enumerate(selected_courses):
+        url = f"{base_url}/api/v1/courses/{course['course_id']}"
+        payload = {
+            "course": {
+                "start_at": f"{course['start_date']}T00:00:00Z" if course['mode'] == "Date Driven" and course['start_date'] else None,
+                "end_at": f"{course['end_date']}T23:59:59Z" if course['mode'] == "Date Driven" and course['end_date'] else None,
+                "restrict_enrollments_to_course_dates": course['mode'] == "Date Driven"
+            },
+            "override_sis_stickiness": True
+        }
+
+        try:
+            resp = requests.put(url, headers=headers, json=payload)
+            resp.raise_for_status()
+            st.success(f"✅ Updated course {course['course_id']}")
+        except Exception as e:
+            st.error(f"❌ Failed to update course {course['course_id']}: {e}")
+
+        progress.progress((i + 1) / total)
+
+    st.success("🎉 All selected courses have been processed.")
+
 
         if selected_course_ids:
             course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
