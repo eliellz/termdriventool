@@ -48,6 +48,35 @@ for key, default_value in INITIAL_SESSION_STATE.items():
 if "credentials_collapsed" not in st.session_state:
     st.session_state.credentials_collapsed = False
 
+# --- API Helpers ---
+def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
+    all_data = []
+    current_url = url
+    while current_url:
+        resp = requests.get(current_url, headers=headers)
+        if resp.status_code != 200:
+            break
+        data = resp.json()
+        all_data.extend(data.get('enrollment_terms', data) if isinstance(data, dict) else data)
+        links = resp.headers.get('Link', '').split(',')
+        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel="next"' in l), None)
+    return all_data
+
+# --- File-Based Cache ---
+def _load_from_file_cache(filepath: str):
+    if os.path.exists(filepath):
+        with open(filepath, 'rb') as f:
+            data, timestamp = pickle.load(f)
+        if (datetime.now() - timestamp).total_seconds() / 3600 < CACHE_TTL_HOURS:
+            return data, timestamp
+    return None, None
+
+def _save_to_file_cache(filepath: str, data: list[dict]):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(filepath, 'wb') as f:
+        pickle.dump((data, datetime.now()), f)
+
+
 with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=not st.session_state.credentials_collapsed):
     st.header("Canvas Credentials")
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
