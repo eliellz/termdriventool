@@ -191,7 +191,7 @@ if filtered_courses:
 
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
-
+            
 def participation_settings_ui(course_ids, courses, key_prefix=""):
     settings = []
     for course_id in course_ids:
