@@ -126,28 +126,32 @@ for course in all_courses:
     restrict = course.get("restrict_enrollments_to_course_dates", False)
     start = course.get("start_at")
     end = course.get("end_at")
+
     start_blank = not start or start.strip() == ""
     end_blank = not end or end.strip() == ""
     has_start_no_end = start and end_blank
     has_end_no_start = end and start_blank
     has_partial_date = has_start_no_end or has_end_no_start
+
     now = datetime.utcnow()
     is_currently_active = False
+
     try:
         start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ") if start else None
         end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None
         if start_dt and end_dt:
             is_currently_active = start_dt <= now <= end_dt
- except Exception:
-    pass
+    except Exception:
+        pass
 
-if restrict and (has_partial_date or is_currently_active):
-    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-    if enrollment_count > 0:
-        course["_active_enrollments"] = enrollment_count
-        course["_term"] = selected_term['name']
-        course["_participation"] = "Date Driven"
-        filtered_courses.append(course)
+    if restrict and (has_partial_date or is_currently_active):
+        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+        if enrollment_count > 0:
+            course["_active_enrollments"] = enrollment_count
+            course["_term"] = selected_term['name']
+            course["_participation"] = "Date Driven"
+            filtered_courses.append(course)
+
 
 # --- Step 2: Course Selection ---
 if filtered_courses:
