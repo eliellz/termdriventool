@@ -231,8 +231,6 @@ if filtered_courses:
             })
     return settings
 
-
-
 def apply_participation_settings(base_url, selected_courses, headers):
     if not selected_courses:
         st.info("No courses selected.")
@@ -264,14 +262,15 @@ def apply_participation_settings(base_url, selected_courses, headers):
 
     st.success("🎉 All selected courses have been processed.")
 
-
-        if selected_course_ids:
-            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-            if st.button("Apply Settings to Selected Courses"):
-                apply_participation_settings(base_url, course_settings, headers)
-                st.session_state.courses_collapsed = True
-                st.rerun()
-        else:
-            st.info("Select at least one course to update.")
+# Back to main logic
+if selected_course_ids:
+    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+    if st.button("Apply Settings to Selected Courses"):
+        apply_participation_settings(base_url, course_settings, headers)
+        st.session_state.courses_collapsed = True
+        st.rerun()
+else:
+    st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
+
