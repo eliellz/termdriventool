@@ -173,6 +173,12 @@ url = (  # ✅ Replace this line
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
+# 🔍 DEBUG: Show first few courses and their enrollments
+st.write(f"📦 Total courses fetched: {len(all_courses)}")
+for course in all_courses[:5]:  # Show only first 5 courses
+    st.markdown(f"**Course ID:** {course.get('id')}")
+    st.write("Enrollments:", course.get("enrollments", "⚠️ Missing"))
+
 # --- Debug: Check if course 166508 is present and what it includes ---
 for course in all_courses:
     if str(course.get("id")) == "166508":
