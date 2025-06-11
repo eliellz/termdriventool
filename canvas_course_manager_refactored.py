@@ -182,11 +182,10 @@ for course in all_courses[:5]:  # Show only first 5 courses
     st.write("Enrollments:", course.get("enrollments", "⚠️ Missing"))
 
 
-
 # --- Display Matching Courses ---
-
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
+
 
     # --- Initialize checkboxes for all filtered courses ---
     for course in filtered_courses:
