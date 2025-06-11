@@ -247,7 +247,7 @@ if filtered_courses:
 selected_course_ids = []
 for course in filtered_courses:
     course_id = str(course['id'])
-
+    
     if deselect_all:
         st.session_state[f"select_{course_id}"] = False
     elif select_all:
@@ -268,27 +268,29 @@ for course in filtered_courses:
             canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
             st.markdown(f"- [Open in Canvas]({canvas_link})")
 
-    # Track selected courses using session state only
+    # Collect selected course IDs
     if st.session_state.get(f"select_{course_id}", False):
         selected_course_ids.append(course_id)
 
-    if selected_course_ids:
-        settings = participation_settings_ui()
+# ✅ Now this block runs ONCE, after the loop
+if selected_course_ids:
+    settings = participation_settings_ui()
 
-        if st.button("Apply Settings to Selected Courses"):
-            st.session_state["trigger_apply"] = True
-            st.session_state["settings_payload"] = {
-                "selected_courses": [{
-                    "course_id": course_id,
-                    "mode": settings["mode"],
-                    "start_date": settings["start_date"],
-                    "end_date": settings["end_date"]
-                } for course_id in selected_course_ids],
-                "selected_mode": settings["mode"]
-            }
-            st.rerun()
-    else:
-        st.info("Select at least one course to update.")
+    if st.button("Apply Settings to Selected Courses"):
+        st.session_state["trigger_apply"] = True
+        st.session_state["settings_payload"] = {
+            "selected_courses": [{
+                "course_id": course_id,
+                "mode": settings["mode"],
+                "start_date": settings["start_date"],
+                "end_date": settings["end_date"]
+            } for course_id in selected_course_ids],
+            "selected_mode": settings["mode"]
+        }
+        st.rerun()
+else:
+    st.info("Select at least one course to update.")
+
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
 
