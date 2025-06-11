@@ -54,6 +54,7 @@ headers = {"Authorization": f"Bearer {api_token}"}
 
 # --- API Helpers ---
 def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
+        print(f"🔍 Requesting: {url}")
     all_data = []
     current_url = url
     while current_url:
@@ -159,6 +160,15 @@ selected_term = next((t for t in term_options if t["id"] == st.session_state.sel
 if not selected_term:
     st.error("❌ No term selected. Please select a term above.")
     st.stop()
+
+# --- 🔎 Direct test fetch for course 166508 ---
+test_url = f"{base_url}/api/v1/courses/166508?include[]=enrollments"
+test_response = requests.get(test_url, headers=headers)
+st.subheader("📎 Debug: Direct Fetch for Course 166508")
+if test_response.status_code == 200:
+    st.json(test_response.json())
+else:
+    st.error(f"❌ Failed to fetch course 166508 — status code: {test_response.status_code}")
 
 # --- Fetch and Filter Courses ---
 from datetime import datetime
