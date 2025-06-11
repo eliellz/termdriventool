@@ -64,7 +64,7 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
         data = resp.json()
         all_data.extend(data.get('enrollment_terms', data) if isinstance(data, dict) else data)
         links = resp.headers.get('Link', '').split(',')
-        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel="next"' in l), None)
+        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel=\"next\"' in l), None)
     return all_data
 
 # --- File-Based Cache ---
@@ -141,7 +141,18 @@ if canvas_domain and api_token and account_id:
 
     if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
         st.success("✅ Terms loaded successfully!")
-        term_options = [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
-        selected_term = st.selectbox("Available Enrollment Terms", term_options)
+        term_names = [term['name'] for term in st.session_state.fetched_terms]
+        selected_index = st.selectbox("Available Enrollment Terms", list(range(len(term_names))), format_func=lambda i: f"{term_names[i]} (ID: {st.session_state.fetched_terms[i]['id']})")
+
+        selected_term = st.session_state.fetched_terms[selected_index]
+        st.session_state.selected_term_id = selected_term['id']
+
+        # --- Fetch Courses for Selected Term ---
+        st.markdown("---")
+        st.subheader(f"Courses for: {selected_term['name']}")
+        url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
+        with st.spinner("Fetching courses for selected term..."):
+            courses = _paginated_get_from_api(url, headers)
+        st.success(f"✅ Found {len(courses)} courses for term '{selected_term['name']}'")
 else:
     st.info("Enter Canvas credentials to begin.")
