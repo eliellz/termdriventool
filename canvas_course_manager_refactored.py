@@ -45,7 +45,7 @@ for key, default_value in INITIAL_SESSION_STATE.items():
         st.session_state[key] = default_value
 
 # --- Credential Inputs ---
-with st.expander("\ud83d\udd10 Canvas Credentials", expanded=not st.session_state.data_loaded_and_terms_fetched):
+with st.expander("Canvas Credentials", expanded=not st.session_state.data_loaded_and_terms_fetched):
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
     api_token = st.text_input("Canvas API Token", type="password")
     account_id = st.text_input("Canvas Account ID", placeholder="1")
@@ -109,7 +109,7 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
     if not selected_courses:
         st.info("No courses selected.")
         return
-    st.subheader("\ud83d\udce4 Applying Participation Settings")
+    st.subheader("Applying Participation Settings")
     total = len(selected_courses)
     progress = st.progress(0)
     for i, course in enumerate(selected_courses):
@@ -125,15 +125,15 @@ def apply_participation_settings(base_url: str, selected_courses: list[dict], he
         try:
             resp = requests.put(url, headers=headers, json=payload)
             resp.raise_for_status()
-            st.success(f"\u2705 Updated course {course['course_id']}")
+            st.success(f"Updated course {course['course_id']}")
         except Exception as e:
-            st.error(f"\u274c Failed to update course {course['course_id']}: {e}")
+            st.error(f"Failed to update course {course['course_id']}: {e}")
         progress.progress((i + 1) / total)
-    st.success("\ud83c\udf89 All selected courses have been processed.")
+    st.success("All selected courses have been processed.")
 
 # --- Term and Course Selection Workflow ---
 if canvas_domain and api_token and account_id:
-    if st.button("\ud83d\ude80 Load Canvas Terms"):
+    if st.button("Load Canvas Terms"):
         terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
         if not terms:
             url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
@@ -144,7 +144,7 @@ if canvas_domain and api_token and account_id:
         st.rerun()
 
     if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
-        st.success("\u2705 Terms loaded successfully!")
+        st.success("Terms loaded successfully!")
         term_names = ["--- Select a Term ---"] + [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
         selected_index = st.selectbox("Select a Term", list(range(len(term_names))), format_func=lambda i: term_names[i])
 
@@ -157,7 +157,7 @@ term_options = st.session_state.fetched_terms
 selected_term = next((t for t in term_options if t["id"] == st.session_state.selected_term_id), None)
 
 if not selected_term:
-    st.error("\u274c No term selected. Please select a term above.")
+    st.error("No term selected. Please select a term above.")
     st.stop()
 
 # --- Fetch and Filter Courses ---
@@ -171,14 +171,14 @@ url = (
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
-# --- 🔧 Enhanced Debug Block ---
-st.subheader("\ud83d\udee0 Debug: Course API Response Check")
+# --- Debug: Course API Response Check ---
+st.subheader("Debug: Course API Response Check")
 st.code(url, language="bash")
 redacted_headers = {k: ("***" if k.lower() == "authorization" else v) for k, v in headers.items()}
 st.write("Request Headers:", redacted_headers)
-st.write(f"\ud83d\udce6 Total courses fetched: `{len(all_courses)}`")
+st.write(f"Total courses fetched: `{len(all_courses)}`")
 if not all_courses:
-    st.error("\u274c No courses returned. Possible reasons:")
+    st.error("No courses returned. Possible reasons:")
     st.markdown("""
     - Invalid Canvas domain or API token
     - Account ID is incorrect or unauthorized
