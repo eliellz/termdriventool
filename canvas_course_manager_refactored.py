@@ -152,85 +152,90 @@ if canvas_domain and api_token and account_id:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
          
-              # --- Fetch and Filter Courses ---
-                restrict = course.get("restrict_enrollments_to_course_dates", False)
-                start = course.get("start_at")
-                end = course.get("end_at")
+# --- Fetch and Filter Courses ---
+url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
+with st.spinner("Fetching courses for selected term..."):
+    all_courses = _paginated_get_from_api(url, headers)
 
-                start_blank = not start or start.strip() == ""
-                end_blank = not end or end.strip() == ""
-                has_start_no_end = start and end_blank
-                has_end_no_start = end and start_blank
-                has_partial_date = has_start_no_end or has_end_no_start
+filtered_courses = []
+for course in all_courses:
+    restrict = course.get("restrict_enrollments_to_course_dates", False)
+    start = course.get("start_at")
+    end = course.get("end_at")
 
-                from datetime import datetime
-                now = datetime.utcnow()
-                is_currently_active = False
-                try:
-                    start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ") if start else None
-                    end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None
-                    if start_dt and end_dt:
-                        is_currently_active = start_dt <= now <= end_dt
-                except Exception:
-                    pass
+    start_blank = not start or start.strip() == ""
+    end_blank = not end or end.strip() == ""
+    has_start_no_end = start and end_blank
+    has_end_no_start = end and start_blank
+    has_partial_date = has_start_no_end or has_end_no_start
 
-                if restrict and (has_partial_date or is_currently_active):
-                    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-                    if enrollment_count > 0:
-                        course["_active_enrollments"] = enrollment_count
-                        course["_term"] = selected_term['name']
-                        course["_participation"] = "Date Driven"
-                        filtered_courses.append(course)
+    from datetime import datetime
+    now = datetime.utcnow()
+    is_currently_active = False
+    try:
+        start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ") if start else None
+        end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None
+        if start_dt and end_dt:
+            is_currently_active = start_dt <= now <= end_dt
+    except Exception:
+        pass
 
-            if filtered_courses:
-                st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
+    if restrict and (has_partial_date or is_currently_active):
+        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+        if enrollment_count > 0:
+            course["_active_enrollments"] = enrollment_count
+            course["_term"] = selected_term['name']
+            course["_participation"] = "Date Driven"
+            filtered_courses.append(course)
 
-                # Select All / Deselect All Toggle
-                st.markdown("### Course Selection")
-                col_select_all, col_deselect_all = st.columns(2)
-                with col_select_all:
-                    select_all = st.checkbox("Select All Courses")
-                with col_deselect_all:
-                    deselect_all = st.checkbox("Deselect All Courses")
+if filtered_courses:
+    st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
-                selected_course_ids = []
-                for course in filtered_courses:
-                    course_id = str(course['id'])
-                    if deselect_all:
-                        st.session_state[f"select_{course_id}"] = False
-                        checked = False
-                    elif select_all:
-                        st.session_state[f"select_{course_id}"] = True
-                        checked = True
-                    else:
-                        checked = st.session_state.get(f"select_{course_id}", False)
+    # Select All / Deselect All Toggle
+    st.markdown("### Course Selection")
+    col_select_all, col_deselect_all = st.columns(2)
+    with col_select_all:
+        select_all = st.checkbox("Select All Courses")
+    with col_deselect_all:
+        deselect_all = st.checkbox("Deselect All Courses")
 
-                    col1, col2 = st.columns([0.05, 0.95])
-                    with col1:
-                        checked = st.checkbox("", key=f"select_{course_id}", value=checked)
-                    with col2:
-                        with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
-                            st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
-                            st.markdown(f"**Term:** {course['_term']}")
-                            st.markdown(f"**Participation Mode:** {course['_participation']}")
-                            st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
-                            st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
-                            canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-                            st.markdown(f"[Open in Canvas]({canvas_link})")
+    selected_course_ids = []
+    for course in filtered_courses:
+        course_id = str(course['id'])
+        if deselect_all:
+            st.session_state[f"select_{course_id}"] = False
+            checked = False
+        elif select_all:
+            st.session_state[f"select_{course_id}"] = True
+            checked = True
+        else:
+            checked = st.session_state.get(f"select_{course_id}", False)
 
-                    if st.session_state.get(f"select_{course_id}", False):
-                        selected_course_ids.append(course_id)
+        col1, col2 = st.columns([0.05, 0.95])
+        with col1:
+            checked = st.checkbox("", key=f"select_{course_id}", value=checked)
+        with col2:
+            with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
+                st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
+                st.markdown(f"**Term:** {course['_term']}")
+                st.markdown(f"**Participation Mode:** {course['_participation']}")
+                st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
+                st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
+                canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                st.markdown(f"[Open in Canvas]({canvas_link})")
 
-                if selected_course_ids:
-                    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+        if st.session_state.get(f"select_{course_id}", False):
+            selected_course_ids.append(course_id)
 
-                    if st.button("Apply Settings to Selected Courses"):
-                        apply_participation_settings(base_url, course_settings, headers)
-                else:
-                    st.info("Select at least one course to update.")
-            else:
-                st.info("No courses found with partial date overrides and active student enrollments.")
+    if selected_course_ids:
+        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
-                
+        if st.button("Apply Settings to Selected Courses"):
+            apply_participation_settings(base_url, course_settings, headers)
+    else:
+        st.info("Select at least one course to update.")
+else:
+    st.info("No courses found with partial date overrides and active student enrollments.")
+
 else:
     st.info("Enter Canvas credentials to begin.")
