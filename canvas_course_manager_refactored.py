@@ -44,30 +44,13 @@ for key, default_value in INITIAL_SESSION_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-# --- UI Section Control Flags ---
-if "credentials_collapsed" not in st.session_state:
-    st.session_state.credentials_collapsed = False
-
-with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=not st.session_state.credentials_collapsed):
-    st.header("Canvas Credentials")
-    canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
-    api_token = st.text_input("Canvas API Token", type="password")
-    account_id = st.text_input("Canvas Account ID", placeholder="1")
-
-    base_url = f"https://{canvas_domain}"
-    headers = {"Authorization": f"Bearer {api_token}"}
-
-    if canvas_domain and api_token and account_id:
-        if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
-            terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
-            if not terms:
-                url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
-                terms = _paginated_get_from_api(url, headers)
-                _save_to_file_cache(TERMS_CACHE_FILE, terms)
-            st.session_state.fetched_terms = terms
-            st.session_state.data_loaded_and_terms_fetched = True
-            st.session_state.credentials_collapsed = True  # ✅ collapse after load
-            st.rerun()
+# --- Credential Inputs ---
+st.header("Canvas Credentials")
+canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
+api_token = st.text_input("Canvas API Token", type="password")
+account_id = st.text_input("Canvas Account ID", placeholder="1")
+base_url = f"https://{canvas_domain}"
+headers = {"Authorization": f"Bearer {api_token}"}
 
 # --- API Helpers ---
 def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
@@ -253,56 +236,12 @@ if filtered_courses:
         if st.session_state.get(f"select_{course_id}", False):
             selected_course_ids.append(course_id)
 
-if "courses_collapsed" not in st.session_state:
-    st.session_state.courses_collapsed = False
+    if selected_course_ids:
+        course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
-if filtered_courses:
-    with st.expander("📘 Step 2: Select and Apply Participation Settings", expanded=not st.session_state.courses_collapsed):
-        st.markdown("### Course Selection")
-
-        col_select_all, col_deselect_all = st.columns(2)
-        with col_select_all:
-            select_all = st.checkbox("Select All Courses")
-        with col_deselect_all:
-            deselect_all = st.checkbox("Deselect All Courses")
-
-        selected_course_ids = []
-        for course in filtered_courses:
-            course_id = str(course['id'])
-            if deselect_all:
-                st.session_state[f"select_{course_id}"] = False
-                checked = False
-            elif select_all:
-                st.session_state[f"select_{course_id}"] = True
-                checked = True
-            else:
-                checked = st.session_state.get(f"select_{course_id}", False)
-
-            col1, col2 = st.columns([0.05, 0.95])
-            with col1:
-                checked = st.checkbox("", key=f"select_{course_id}", value=checked)
-            with col2:
-                with st.expander(f"{course['name']} (ID: {course_id})", expanded=False):
-                    st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
-                    st.markdown(f"**Term:** {course['_term']}")
-                    st.markdown(f"**Participation Mode:** {course['_participation']}")
-                    st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
-                    st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
-                    canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
-                    st.markdown(f"[Open in Canvas]({canvas_link})")
-
-            if st.session_state.get(f"select_{course_id}", False):
-                selected_course_ids.append(course_id)
-
-        if selected_course_ids:
-            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-
-            if st.button("Apply Settings to Selected Courses"):
-                apply_participation_settings(base_url, course_settings, headers)
-                st.session_state.courses_collapsed = True  # ✅ Collapse after applying
-                st.rerun()
-        else:
-            st.info("Select at least one course to update.")
+        if st.button("Apply Settings to Selected Courses"):
+            apply_participation_settings(base_url, course_settings, headers)
+    else:
+        st.info("Select at least one course to update.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
-
