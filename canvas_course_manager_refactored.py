@@ -151,7 +151,11 @@ if canvas_domain and api_token and account_id:
         if selected_index != 0:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
-         
+
+# --- Select Enrollment Term ---
+term_options = get_term_options()  # Replace with your actual function to get terms
+selected_term = st.selectbox("Choose an enrollment term", term_options, format_func=lambda t: t["name"])
+
 # --- Fetch and Filter Courses ---
 from datetime import datetime
 
