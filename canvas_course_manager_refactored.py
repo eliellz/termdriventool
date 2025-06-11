@@ -161,9 +161,13 @@ if canvas_domain and api_token and account_id:
 
             filtered_courses = []
             for course in all_courses:
-                # Only include courses that are Date Driven and have active student enrollments
+                # Only include Date Driven courses that have custom course dates and active enrollments
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
-                if restrict:
+                start = course.get("start_at")
+                end = course.get("end_at")
+                has_custom_date = start or end
+
+                if restrict and has_custom_date:
                     enrollment_count = get_enrollment_count(course['id'], base_url, headers)
                     if enrollment_count > 0:
                         course["_active_enrollments"] = enrollment_count
