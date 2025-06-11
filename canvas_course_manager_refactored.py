@@ -175,19 +175,27 @@ url = (  # ✅ Replace this line
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
-# 🔍 DEBUG: Show first few courses and their enrollments
+# Fetch and display total courses
 st.write(f"📦 Total courses fetched: {len(all_courses)}")
-for course in all_courses[:5]:  # Show only first 5 courses
+for course in all_courses[:5]:
     st.markdown(f"**Course ID:** {course.get('id')}")
     st.write("Enrollments:", course.get("enrollments", "⚠️ Missing"))
 
+# --- Filter courses ---
+filtered_courses = []
+for course in all_courses:
+    restrict = course.get("restrict_enrollments_to_course_dates", False)
+    start_at = course.get("start_at")
+    end_at = course.get("end_at")
+    enrollments = course.get("enrollments", [])
+
+    if restrict and (start_at or end_at) and enrollments:
+        filtered_courses.append(course)
 
 # --- Display Matching Courses ---
 if filtered_courses:
     st.success(f"✅ {len(filtered_courses)} courses with mismatched dates and active enrollments found.")
 
-
-    # --- Initialize checkboxes for all filtered courses ---
     for course in filtered_courses:
         course_id = str(course['id'])
         if f"select_{course_id}" not in st.session_state:
