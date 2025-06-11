@@ -251,21 +251,17 @@ if st.session_state.get(f"select_{course_id}"):
 # Handle participation settings only if courses were found
 if filtered_courses:
     if selected_course_ids:
-        st.markdown("---")
-        st.markdown("### 🛠️ Step 2: Define Participation Settings")
-        st.info("Choose a participation mode and date range for each selected course.")
+        if "settings_collapsed" not in st.session_state:
+            st.session_state.settings_collapsed = False
 
-if "settings_collapsed" not in st.session_state:
-    st.session_state.settings_collapsed = False
+        with st.expander("🛠️ Step 2: Define Participation Settings", expanded=not st.session_state.settings_collapsed):
+            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
-with st.expander("🛠️ Step 2: Define Participation Settings", expanded=not st.session_state.settings_collapsed):
-    course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
-
-    if st.button("✅ Apply Settings to Selected Courses"):
-        apply_participation_settings(base_url, course_settings, headers)
-        st.session_state.settings_collapsed = True  # Collapse after apply
-
+            if st.button("✅ Apply Settings to Selected Courses"):
+                apply_participation_settings(base_url, course_settings, headers)
+                st.session_state.settings_collapsed = True  # Collapse after apply
     else:
         st.warning("⚠️ Please select at least one course above to proceed.")
 else:
     st.info("No courses found with partial date overrides and active student enrollments.")
+
