@@ -116,8 +116,15 @@ term_names = ["--- Select a Term ---"] + [f"{term['name']} (ID: {term['id']})" f
 selected_index = st.selectbox("Select a Term", list(range(len(term_names))), format_func=lambda i: term_names[i])
 if selected_index == 0:
     st.stop()
+
 selected_term = st.session_state.fetched_terms[selected_index - 1]
 st.session_state.selected_term_id = selected_term['id']
+
+# Add a button to trigger the search
+if st.button("🔍 Search Courses in Selected Term"):
+    st.session_state["force_refetch"] = True
+    st.experimental_rerun()
+
 
 # --- Fetch and Filter Courses ---
 url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
