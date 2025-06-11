@@ -44,20 +44,31 @@ for key, default_value in INITIAL_SESSION_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-
 # --- Collapse Control Flags ---
 if "credentials_collapsed" not in st.session_state:
     st.session_state.credentials_collapsed = False
 
 with st.expander("🔐 Step 1: Canvas Credentials & Term Selection", expanded=not st.session_state.credentials_collapsed):
-
-    # --- Credential Inputs ---
-st.header("Canvas Credentials")
+    st.header("Canvas Credentials")
     canvas_domain = st.text_input("Canvas Domain", placeholder="yourdomain.instructure.com")
     api_token = st.text_input("Canvas API Token", type="password")
     account_id = st.text_input("Canvas Account ID", placeholder="1")
+
     base_url = f"https://{canvas_domain}"
     headers = {"Authorization": f"Bearer {api_token}"}
+
+    if canvas_domain and api_token and account_id:
+        if st.button("🚀 Load Canvas Terms", key="load_terms_btn"):
+            terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
+            if not terms:
+                url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
+                terms = _paginated_get_from_api(url, headers)
+                _save_to_file_cache(TERMS_CACHE_FILE, terms)
+            st.session_state.fetched_terms = terms
+            st.session_state.data_loaded_and_terms_fetched = True
+            st.session_state.credentials_collapsed = True
+            st.rerun()
+
 
 # --- API Helpers ---
 def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
