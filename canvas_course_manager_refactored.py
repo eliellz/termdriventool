@@ -54,7 +54,7 @@ headers = {"Authorization": f"Bearer {api_token}"}
 
 # --- API Helpers ---
 def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
-        print(f"🔍 Requesting: {url}")
+    print(f"🔍 Requesting: {url}")  # ✅ fixed indent
     all_data = []
     current_url = url
     while current_url:
@@ -64,7 +64,7 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
         data = resp.json()
         all_data.extend(data.get('enrollment_terms', data) if isinstance(data, dict) else data)
         links = resp.headers.get('Link', '').split(',')
-        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel="next"' in l), None)
+        current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel=\"next\"' in l), None)
     return all_data
 
 def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
