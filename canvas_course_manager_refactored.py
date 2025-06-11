@@ -6,6 +6,9 @@ import logging
 import os
 import pickle
 
+if "trigger_apply" not in st.session_state:
+    st.session_state["trigger_apply"] = False
+
 # --- Configuration ---
 CACHE_DIR = ".canvas_cache"
 TERMS_CACHE_FILE = os.path.join(CACHE_DIR, "terms.pkl")
@@ -260,21 +263,19 @@ if filtered_courses:
     if selected_course_ids:
         settings = participation_settings_ui()
 
-        if st.button("Apply Settings to Selected Courses"):
-            selected_courses = [{
-                "course_id": course_id,
-                "mode": settings["mode"],
-                "start_date": settings["start_date"],
-                "end_date": settings["end_date"]
-            } for course_id in selected_course_ids]
+if st.button("Apply Settings to Selected Courses"):
+    st.session_state["trigger_apply"] = True
+    st.session_state["settings_payload"] = {
+        "selected_courses": [{
+            "course_id": course_id,
+            "mode": settings["mode"],
+            "start_date": settings["start_date"],
+            "end_date": settings["end_date"]
+        } for course_id in selected_course_ids],
+        "selected_mode": settings["mode"]
+    }
+    st.rerun()
 
-            selected_mode = settings["mode"]
-
-            updated_ids = apply_participation_settings(base_url, selected_courses, headers)
-            st.session_state["last_updates"] = updated_ids
-            st.session_state["bulk_mode"] = selected_mode
-            st.session_state["courses_collapsed"] = True
-            st.rerun()
 
     else:
         st.info("Select at least one course to update.")
