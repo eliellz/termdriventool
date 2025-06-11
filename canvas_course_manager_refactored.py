@@ -66,122 +66,97 @@ def _paginated_get_from_api(url: str, headers: dict) -> list[dict]:
         current_url = next((l.split(';')[0].strip('<>') for l in links if 'rel=\"next\"' in l), None)
     return all_data
 
-def get_enrollment_count(course_id: str, base_url: str, headers: dict) -> int:
-    url = f"{base_url}/api/v1/courses/{course_id}/enrollments?type[]=StudentEnrollment&state[]=active"
-    resp = requests.get(url, headers=headers)
-    if resp.status_code == 200:
-        return len(resp.json())
-    return 0
-
-# --- File-Based Cache ---
-def _load_from_file_cache(filepath: str):
-    if os.path.exists(filepath):
-        with open(filepath, 'rb') as f:
-            data, timestamp = pickle.load(f)
-        if (datetime.now() - timestamp).total_seconds() / 3600 < CACHE_TTL_HOURS:
-            return data, timestamp
-    return None, None
-
-def _save_to_file_cache(filepath: str, data: list[dict]):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    with open(filepath, 'wb') as f:
-        pickle.dump((data, datetime.now()), f)
-
-# --- Participation Settings UI ---
-def participation_settings_ui(course_ids: list[str], courses: list[dict], key_prefix: str = "") -> list[dict]:
-    settings = []
-    for course_id in course_ids:
-        course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
-        with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
-            mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
-            start_date, end_date = None, None
-            if mode == "Date Driven":
-                start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
-                if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
-                    end_date = None
-                else:
-                    end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
-            settings.append({"course_id": course_id, "mode": mode, "start_date": start_date, "end_date": end_date})
-    return settings
-
-# --- Apply Settings ---
-def apply_participation_settings(base_url: str, selected_courses: list[dict], headers: dict):
-    if not selected_courses:
-        st.info("No courses selected.")
-        return
-    st.subheader("Applying Participation Settings")
-    total = len(selected_courses)
-    progress = st.progress(0)
-    for i, course in enumerate(selected_courses):
-        url = f"{base_url}/api/v1/courses/{course['course_id']}"
-        payload = {
-            "course": {
-                "start_at": f"{course['start_date']}T00:00:00Z" if course['mode'] == "Date Driven" and course['start_date'] else None,
-                "end_at": f"{course['end_date']}T23:59:59Z" if course['mode'] == "Date Driven" and course['end_date'] else None,
-                "restrict_enrollments_to_course_dates": course['mode'] == "Date Driven"
-            },
-            "override_sis_stickiness": True
-        }
-        try:
-            resp = requests.put(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            st.success(f"Updated course {course['course_id']}")
-        except Exception as e:
-            st.error(f"Failed to update course {course['course_id']}: {e}")
-        progress.progress((i + 1) / total)
-    st.success("All selected courses have been processed.")
-
 # --- Term and Course Selection Workflow ---
-if canvas_domain and api_token and account_id:
-    if st.button("Load Canvas Terms"):
-        terms, _ = _load_from_file_cache(TERMS_CACHE_FILE)
-        if not terms:
-            url = f"{base_url}/api/v1/accounts/{account_id}/terms?per_page=100"
-            terms = _paginated_get_from_api(url, headers)
-            _save_to_file_cache(TERMS_CACHE_FILE, terms)
-        st.session_state.fetched_terms = terms
+if canvas_domain and api_token:
+    if st.button("Load All Courses Without Filtering"):
         st.session_state.data_loaded_and_terms_fetched = True
         st.rerun()
 
-    if st.session_state.data_loaded_and_terms_fetched and st.session_state.fetched_terms:
-        st.success("Terms loaded successfully!")
-        term_names = ["--- Select a Term ---"] + [f"{term['name']} (ID: {term['id']})" for term in st.session_state.fetched_terms]
-        selected_index = st.selectbox("Select a Term", list(range(len(term_names))), format_func=lambda i: term_names[i])
+if st.session_state.data_loaded_and_terms_fetched:
+    # --- Fetch All Courses ---
+    url = f"{base_url}/api/v1/courses?per_page=100&include[]=enrollments"
+    with st.spinner("Fetching all courses..."):
+        all_courses = _paginated_get_from_api(url, headers)
 
-        if selected_index != 0:
-            selected_term = st.session_state.fetched_terms[selected_index - 1]
-            st.session_state.selected_term_id = selected_term['id']
+    st.subheader("Debug: All Courses Fetched")
+    st.code(url, language="bash")
+    redacted_headers = {k: ("***" if k.lower() == "authorization" else v) for k, v in headers.items()}
+    st.write("Request Headers:", redacted_headers)
+    st.write(f"Total courses fetched: `{len(all_courses)}`")
 
-# --- Use Selected Term ---
-term_options = st.session_state.fetched_terms
-selected_term = next((t for t in term_options if t["id"] == st.session_state.selected_term_id), None)
+    if not all_courses:
+        st.error("No courses returned. Possible reasons:")
+        st.markdown("""
+        - Invalid Canvas domain or API token
+        - The token doesn’t have permission to view any courses
+        - Canvas API throttling or server error
+        """)
+        st.stop()
+    else:
+        # Filter to courses with participation override and enrollments
+        filtered_courses = []
+        for course in all_courses:
+            if course.get("restrict_enrollments_to_course_dates") and course.get("enrollments"):
+                filtered_courses.append(course)
 
-if not selected_term:
-    st.error("No term selected. Please select a term above.")
-    st.stop()
+        st.success(f"Filtered to {len(filtered_courses)} courses with date restrictions and enrollments.")
+        st.write("Preview:")
+        st.json(filtered_courses[:5])
 
-# --- Fetch and Filter Courses ---
-url = f"{base_url}/api/v1/courses?per_page=100"
-with st.spinner("Fetching courses for selected term..."):
-    all_courses = _paginated_get_from_api(url, headers)
+        # Let user pick a subset manually
+        selected_course_ids = []
+        for course in filtered_courses:
+            cid = str(course["id"])
+            if st.checkbox(f"{course['name']} (ID: {cid})", key=f"course_{cid}"):
+                selected_course_ids.append(cid)
 
-# --- Debug: Course API Response Check ---
-st.subheader("Debug: Course API Response Check")
-st.code(url, language="bash")
-redacted_headers = {k: ("***" if k.lower() == "authorization" else v) for k, v in headers.items()}
-st.write("Request Headers:", redacted_headers)
-st.write(f"Total courses fetched: `{len(all_courses)}`")
-if not all_courses:
-    st.error("No courses returned. Possible reasons:")
-    st.markdown("""
-    - Invalid Canvas domain or API token
-    - Account ID is incorrect or unauthorized
-    - Selected term ID does not match any courses
-    - The token doesn’t have permission to view courses
-    - Canvas API throttling or server error
-    """)
-    st.stop()
-else:
-    st.json(all_courses[:2])
+        if selected_course_ids:
+            st.info("You selected these courses:")
+            st.write(selected_course_ids)
 
-# (rest of your filtering and UI logic continues...)
+            # --- Participation Settings UI ---
+            def participation_settings_ui(course_ids: list[str], courses: list[dict], key_prefix: str = "") -> list[dict]:
+                settings = []
+                for course_id in course_ids:
+                    course_name = next((c["name"] for c in courses if str(c["id"]) == course_id), course_id)
+                    with st.expander(f"Participation Settings: {course_name} (ID: {course_id})", expanded=False):
+                        mode = st.radio("Participation Mode", ["Term Driven", "Date Driven"], key=f"{key_prefix}mode_{course_id}")
+                        start_date, end_date = None, None
+                        if mode == "Date Driven":
+                            start_date = st.date_input("Start Date", key=f"{key_prefix}start_{course_id}")
+                            if st.checkbox("No End Date", key=f"{key_prefix}no_end_{course_id}"):
+                                end_date = None
+                            else:
+                                end_date = st.date_input("End Date", key=f"{key_prefix}end_{course_id}")
+                        settings.append({"course_id": course_id, "mode": mode, "start_date": start_date, "end_date": end_date})
+                return settings
+
+            course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
+
+            if st.button("Apply Settings"):
+                def apply_participation_settings(base_url: str, selected_courses: list[dict], headers: dict):
+                    st.subheader("Applying Participation Settings")
+                    total = len(selected_courses)
+                    progress = st.progress(0)
+                    for i, course in enumerate(selected_courses):
+                        url = f"{base_url}/api/v1/courses/{course['course_id']}"
+                        payload = {
+                            "course": {
+                                "start_at": f"{course['start_date']}T00:00:00Z" if course['mode'] == "Date Driven" and course['start_date'] else None,
+                                "end_at": f"{course['end_date']}T23:59:59Z" if course['mode'] == "Date Driven" and course['end_date'] else None,
+                                "restrict_enrollments_to_course_dates": course['mode'] == "Date Driven"
+                            },
+                            "override_sis_stickiness": True
+                        }
+                        try:
+                            resp = requests.put(url, headers=headers, json=payload)
+                            resp.raise_for_status()
+                            st.success(f"Updated course {course['course_id']}")
+                        except Exception as e:
+                            st.error(f"Failed to update course {course['course_id']}: {e}")
+                        progress.progress((i + 1) / total)
+                    st.success("All selected courses have been processed.")
+
+                apply_participation_settings(base_url, course_settings, headers)
+        else:
+            st.warning("Please select at least one course.")
