@@ -155,6 +155,7 @@ if canvas_domain and api_token and account_id:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
 
+      
             # --- Fetch and Filter Courses ---
             url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
             with st.spinner("Fetching courses for selected term..."):
@@ -164,13 +165,26 @@ if canvas_domain and api_token and account_id:
             for course in all_courses:
                 start = course.get("start_at")
                 end = course.get("end_at")
-                if (start or end):
-                    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-                    if enrollment_count > 0:
-                        filtered_courses.append(course)
+                if start is not None or end is not None:
+                    if start != "" or end != "":
+                        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+                        if enrollment_count > 0:
+                            course["_active_enrollments"] = enrollment_count
+                            course["_term"] = selected_term['name']
+                            filtered_courses.append(course)
 
             if filtered_courses:
                 st.success(f"✅ {len(filtered_courses)} courses with custom dates and active enrollments found.")
+
+                for course in filtered_courses:
+                    with st.expander(f"{course['name']} (ID: {course['id']})", expanded=False):
+                        st.markdown(f"**Active Student Enrollments:** {course['_active_enrollments']}")
+                        st.markdown(f"**Term:** {course['_term']}")
+                        st.markdown(f"**Start Date:** {course.get('start_at', 'None')}")
+                        st.markdown(f"**End Date:** {course.get('end_at', 'None')}")
+                        canvas_link = f"https://{canvas_domain}/courses/{course['id']}"
+                        st.markdown(f"[Open in Canvas]({canvas_link})")
+
                 selected_course_ids = [str(c['id']) for c in filtered_courses]
                 course_settings = participation_settings_ui(selected_course_ids, filtered_courses)
 
