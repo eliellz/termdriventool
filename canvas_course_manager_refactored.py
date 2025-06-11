@@ -192,21 +192,27 @@ for course in all_courses:
 
     start_date = course.get("start_at")
     end_date = course.get("end_at")
-    has_dates = bool(start_date) or bool(end_date)
+    restrict = course.get("restrict_enrollments_to_course_dates", False)
 
-    # ✅ Use direct API call to count active student enrollments
+    start_blank = not start_date or start_date.strip() == ""
+    end_blank = not end_date or end_date.strip() == ""
+    has_start_no_end = start_date and end_blank
+    has_end_no_start = end_date and start_blank
+    has_partial_date = has_start_no_end or has_end_no_start
+
+    now = datetime.utcnow()
+    is_currently_active = False
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%SZ") if start_date else None
+        end_dt = datetime.strptime(end_date, "%Y-%m-%dT%H:%M:%SZ") if end_date else None
+        if start_dt and end_dt:
+            is_currently_active = start_dt <= now <= end_dt
+    except Exception:
+        pass
+
     active_student_count = get_enrollment_count(course_id, base_url, headers)
 
-    # 🔍 Debug why courses are excluded
-    if not has_dates:
-        st.write(f"⛔ Skipped {course_id} - no start/end date")
-    elif active_student_count == 0:
-        st.write(f"⛔ Skipped {course_id} - no active enrollments")
-    elif not course.get("restrict_enrollments_to_course_dates", False):
-        st.write(f"⛔ Skipped {course_id} - no override enabled")
-
-    # ✅ Only include if course has dates, active students, and override
-    if has_dates and active_student_count > 0 and course.get("restrict_enrollments_to_course_dates", False):
+    if restrict and (has_partial_date or is_currently_active) and active_student_count > 0:
         course['_term'] = term_name
         course['_participation'] = participation_mode
         course['_active_enrollments'] = active_student_count
