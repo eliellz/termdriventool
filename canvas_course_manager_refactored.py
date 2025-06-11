@@ -120,11 +120,11 @@ if selected_index == 0:
 selected_term = st.session_state.fetched_terms[selected_index - 1]
 st.session_state.selected_term_id = selected_term['id']
 
-# Add a button to trigger the search
+# ✅ Use a trigger flag instead of immediate rerun
 if st.button("🔍 Search Courses in Selected Term"):
+    st.session_state["courses_search_triggered_for_term"] = True
     st.session_state["force_refetch"] = True
-    st.experimental_rerun()
-
+    st.rerun()  # Now safely re-runs on next render
 
 # --- Fetch and Filter Courses ---
 url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100"
