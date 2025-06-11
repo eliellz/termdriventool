@@ -163,7 +163,13 @@ if not selected_term:
 # --- Fetch and Filter Courses ---
 from datetime import datetime
 
-url = f"{base_url}/api/v1/accounts/{account_id}/courses?enrollment_term_id={selected_term['id']}&per_page=100&include[]=enrollments&enrollment_type[]=StudentEnrollment"
+url = (  # ✅ Replace this line
+    f"{base_url}/api/v1/accounts/{account_id}/courses"
+    f"?enrollment_term_id={selected_term['id']}&per_page=100"
+    f"&include[]=enrollments"
+    f"&enrollment_type[]=StudentEnrollment"
+    f"&state[]=all"
+)
 with st.spinner("Fetching courses for selected term..."):
     all_courses = _paginated_get_from_api(url, headers)
 
