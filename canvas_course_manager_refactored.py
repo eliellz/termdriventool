@@ -152,7 +152,7 @@ if canvas_domain and api_token and account_id:
             selected_term = st.session_state.fetched_terms[selected_index - 1]
             st.session_state.selected_term_id = selected_term['id']
          
-            # --- Fetch and Filter Courses ---
+              # --- Fetch and Filter Courses ---
                 restrict = course.get("restrict_enrollments_to_course_dates", False)
                 start = course.get("start_at")
                 end = course.get("end_at")
@@ -230,6 +230,7 @@ if canvas_domain and api_token and account_id:
                     st.info("Select at least one course to update.")
             else:
                 st.info("No courses found with partial date overrides and active student enrollments.")
+
                 
 else:
     st.info("Enter Canvas credentials to begin.")
