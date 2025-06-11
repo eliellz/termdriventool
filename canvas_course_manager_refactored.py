@@ -154,13 +154,13 @@ for course in all_courses:
     except Exception:
         pass
 
-if restrict and (has_partial_date or is_currently_active):
-    enrollment_count = get_enrollment_count(course['id'], base_url, headers)
-    if enrollment_count > 0:
-        course["_active_enrollments"] = enrollment_count
-        course["_term"] = selected_term['name']
-        course["_participation"] = "Date Driven"
-        filtered_courses.append(course)
+    if restrict and (has_partial_date or is_currently_active):
+        enrollment_count = get_enrollment_count(course['id'], base_url, headers)
+        if enrollment_count > 0:
+            course["_active_enrollments"] = enrollment_count
+            course["_term"] = selected_term['name']
+            course["_participation"] = "Date Driven"
+            filtered_courses.append(course)
 
 # --- Initialize collapse state for Step 2 ---
 if "courses_collapsed" not in st.session_state:
@@ -292,4 +292,3 @@ if "last_updates" in st.session_state and st.session_state["last_updates"]:
         course = next((c for c in filtered_courses if str(c["id"]) == cid), None)
         if course:
             st.markdown(f"- 📘 **{course['name']} (ID: {cid})** — {st.session_state.get('bulk_mode', 'Date/Term')} mode applied")
-
